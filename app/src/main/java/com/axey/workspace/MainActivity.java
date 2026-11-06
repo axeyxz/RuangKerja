@@ -840,24 +840,50 @@ public class MainActivity extends Activity {
             render();
             return;
         }
+        if (Build.VERSION.SDK_INT < 28) {
+            info("Pembuatan Work Profile Axey memerlukan Android 9 atau lebih baru.");
+            return;
+        }
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_MANAGED_USERS)) {
-            info("Perangkat ini tidak melaporkan dukungan Android Managed Profile. Axey tidak akan memaksakan proses pembuatan profil.");
+            info("Perangkat ini tidak melaporkan dukungan Android Managed Profile. Axey tidak akan memaksakan pembuatan profil.");
             return;
         }
-        if (Build.VERSION.SDK_INT >= 26 &&
-            !dpm.isProvisioningAllowed(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE)) {
-            info("Android belum mengizinkan provisioning Work Profile saat ini. Periksa apakah profil terkelola sudah ada atau ada kebijakan perangkat yang membatasi penambahan profil.");
+        boolean allowed;
+        try {
+            allowed = dpm.isProvisioningAllowed(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE);
+        } catch (Exception checkError) {
+            info("Axey tidak dapat memeriksa izin pembuatan profil dari Android.\n\n" +
+                (checkError.getMessage() == null ? checkError.getClass().getSimpleName() : checkError.getMessage()));
             return;
         }
+        if (!allowed) {
+            info("Android sedang tidak mengizinkan pembuatan Work Profile. Kemungkinan sudah ada Work Profile, pengguna/perangkat dibatasi kebijakan, atau sistem belum siap. Periksa Pengaturan > Akun dan pastikan tidak ada profil kerja lama.");
+            return;
+        }
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Buat Work Profile Axey?")
+            .setMessage("Android akan membuka penyiapan resmi untuk membuat ruang kerja terpisah. Ikuti petunjuk sistem sampai selesai.\n\n• Data pribadi tetap terpisah.\n• Axey menjadi pengelola profil kerja saja.\n• Pembuatan dapat ditolak oleh kebijakan atau sistem perangkat.\n\nLanjutkan ke penyiapan Android?")
+            .setNegativeButton("NANTI", null)
+            .setPositiveButton("LANJUTKAN", (dialog, which) -> launchProfileProvisioning())
+            .show();
+    }
+
+    private void launchProfileProvisioning() {
         try {
             Intent intent = new Intent(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE);
             intent.putExtra(DevicePolicyManager.EXTRA_PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME,
                 new ComponentName(this, WorkspaceAdminReceiver.class));
+            if (intent.resolveActivity(getPackageManager()) == null) {
+                info("Layar penyiapan Work Profile tidak tersedia pada ROM perangkat ini. Axey tidak dapat menggantikan proses sistem tersebut.");
+                return;
+            }
             startActivity(intent);
+        } catch (SecurityException e) {
+            info("Android menolak permintaan pembuatan Work Profile. Pastikan tidak ada profil kerja lama atau kebijakan perangkat yang melarangnya.\n\nDetail: " +
+                (e.getMessage() == null ? "Akses ditolak." : e.getMessage()));
         } catch (Exception e) {
-            String reason = e.getMessage();
-            info("Android tidak dapat membuka layar penyiapan Work Profile." +
-                (reason == null ? "" : "\n\nDetail: " + reason));
+            info("Android tidak dapat membuka layar penyiapan Work Profile.\n\nDetail: " +
+                (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
         }
     }
 
