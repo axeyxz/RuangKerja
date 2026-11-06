@@ -70,7 +70,6 @@ public class MainActivity extends Activity {
         }
         Intent i=new Intent(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE);
         i.putExtra(DevicePolicyManager.EXTRA_PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME,admin);
-        i.putExtra(DevicePolicyManager.EXTRA_PROVISIONING_DEFAULT_MANAGED_PROFILE_NAME,"Ruang Kerja");
         i.putExtra(DevicePolicyManager.EXTRA_PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED,true);
         try{startActivityForResult(i,1001);}catch(Exception e){toast("Setup tidak bisa dibuka: "+e.getMessage());}
     }
