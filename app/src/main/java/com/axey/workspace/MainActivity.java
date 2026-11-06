@@ -260,7 +260,9 @@ public class MainActivity extends Activity {
             float top = (getHeight() - h) / 2f;
             int save = canvas.save();
             bounds.set(0, 0, getWidth(), getHeight());
-            canvas.clipRoundRect(bounds, dp(15), dp(15));
+            Path clip = new Path();
+            clip.addRoundRect(bounds, dp(15), dp(15), Path.Direction.CW);
+            canvas.clipPath(clip);
             canvas.drawColor(Color.BLACK);
             canvas.translate(left, top);
             canvas.scale(scale, scale);
