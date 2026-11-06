@@ -70,11 +70,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v1.2.8 --yes || true
-          gh release create v1.2.8 app/build/outputs/apk/release/app-release.apk --title "Axey Workspace 1.2.8" --notes "Axey Workspace 1.2.8. Dashboard icon and Work Profile settings refinements."
+          gh release delete v1.2.9 --yes || true
+          gh release create v1.2.9 app/build/outputs/apk/release/app-release.apk --title "Axey Workspace 1.2.9" --notes "Axey Workspace 1.2.9. Dashboard icon and Work Profile settings refinements."
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Axey-Workspace-1.2.8-signed
+          name: Axey-Workspace-1.2.9-signed
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
