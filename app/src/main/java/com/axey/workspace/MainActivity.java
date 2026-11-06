@@ -787,7 +787,7 @@ public class MainActivity extends Activity {
             "Periksa & perbaiki Workspace",
             "Bersihkan cache AXEY",
             "Kelola aplikasi Workspace",
-            "Hapus Work Profile"
+            "Hapus data AXEY"
         };
         new android.app.AlertDialog.Builder(this)
             .setTitle("Profile Settings")
@@ -808,7 +808,7 @@ public class MainActivity extends Activity {
                 } else if (which == 2) {
                     showApps();
                 } else if (which == 3) {
-                    confirmRemoveWorkProfile();
+                    confirmResetAxeyData();
                 }
             })
             .setNegativeButton("TUTUP", null)
@@ -846,31 +846,36 @@ public class MainActivity extends Activity {
         return success;
     }
 
-    private void confirmRemoveWorkProfile() {
-        if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
-            info("AXEY bukan pengelola Work Profile. Penghapusan profil hanya dapat dilakukan oleh pemilik profil melalui mekanisme resmi Android.");
-            return;
-        }
+    private void confirmResetAxeyData() {
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Hapus seluruh Work Profile?")
-            .setMessage("PERINGATAN: Android akan menghapus profil kerja beserta aplikasi, akun, file, dan data yang tersimpan di dalamnya. Tindakan ini tidak dapat dibatalkan. Profil pribadi di luar Work Profile tidak ditargetkan oleh tindakan ini. Pastikan semua data penting sudah dicadangkan.")
+            .setTitle("Hapus data AXEY saja?")
+            .setMessage("Tindakan ini akan menghapus pengaturan, konfigurasi proxy, daftar lokal, database, dan file milik aplikasi AXEY saja. Aplikasi lain, akun, foto, dokumen, dan seluruh Work Profile tidak akan dihapus. AXEY akan memulai ulang seperti baru dipasang.")
             .setNegativeButton("BATAL", null)
-            .setPositiveButton("LANJUTKAN", (dialog, which) ->
-                new android.app.AlertDialog.Builder(this)
-                    .setTitle("Konfirmasi terakhir")
-                    .setMessage("Yakin ingin menghapus Work Profile sekarang?")
-                    .setNegativeButton("JANGAN HAPUS", null)
-                    .setPositiveButton("HAPUS WORK PROFILE", (confirm, choice) -> {
-                        try {
-                            dpm.wipeData(0);
-                        } catch (SecurityException e) {
-                            info("Android menolak penghapusan Work Profile. Hapus profil melalui pengaturan resmi Android.");
-                        } catch (Exception e) {
-                            info("Work Profile tidak dapat dihapus: " + e.getMessage());
-                        }
-                    })
-                    .show())
+            .setPositiveButton("HAPUS DATA AXEY", (dialog, which) -> resetAxeyData())
             .show();
+    }
+
+    private void resetAxeyData() {
+        try {
+            // Remove only AXEY-owned app data. Never call DevicePolicyManager.wipeData().
+            deleteDirectoryContents(new java.io.File(getApplicationInfo().dataDir, "shared_prefs"));
+            deleteDirectoryContents(new java.io.File(getApplicationInfo().dataDir, "databases"));
+            deleteDirectoryContents(getFilesDir());
+            deleteDirectoryContents(getCacheDir());
+            deleteDirectoryContents(getCodeCacheDir());
+            deleteDirectoryContents(getNoBackupFilesDir());
+            if (getExternalCacheDir() != null) deleteDirectoryContents(getExternalCacheDir());
+
+            android.content.Intent relaunch = getPackageManager().getLaunchIntentForPackage(getPackageName());
+            if (relaunch != null) {
+                relaunch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(relaunch);
+            }
+            finishAffinity();
+        } catch (Exception e) {
+            info("Sebagian data AXEY tidak dapat dihapus. Detail: " +
+                (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+        }
     }
 
     private void openSettings(String action) {
