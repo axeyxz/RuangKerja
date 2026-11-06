@@ -12,6 +12,8 @@ import android.graphics.Color;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Movie;
+import android.os.SystemClock;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -93,9 +95,8 @@ public class MainActivity extends Activity {
 
         LinearLayout brand = new LinearLayout(this);
         brand.setGravity(Gravity.CENTER_VERTICAL);
-        TextView mark = text("A", 23, Color.WHITE, true);
-        mark.setGravity(Gravity.CENTER);
-        mark.setBackground(shape(BLUE, 15, 0));
+        AnimatedLogoView mark = new AnimatedLogoView();
+        mark.setBackground(shape(Color.BLACK, 15, 0));
         brand.addView(mark, new LinearLayout.LayoutParams(dp(48), dp(48)));
         LinearLayout brandText = new LinearLayout(this);
         brandText.setOrientation(LinearLayout.VERTICAL);
@@ -234,6 +235,39 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
         p.bottomMargin = dp(11);
         root.addView(card, p);
+    }
+
+    private class AnimatedLogoView extends View {
+        private final Movie movie;
+        private final Paint logoPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        private final android.graphics.RectF bounds = new android.graphics.RectF();
+        AnimatedLogoView() {
+            super(MainActivity.this);
+            Movie decoded = null;
+            try { decoded = Movie.decodeStream(getResources().openRawResource(R.raw.axey_logo)); }
+            catch (Exception ignored) { }
+            movie = decoded;
+        }
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            if (movie == null || movie.width() <= 0 || movie.height() <= 0) return;
+            int duration = movie.duration() > 0 ? movie.duration() : 900;
+            movie.setTime((int)(SystemClock.uptimeMillis() % duration));
+            float scale = Math.max(getWidth() / (float) movie.width(), getHeight() / (float) movie.height());
+            float w = movie.width() * scale;
+            float h = movie.height() * scale;
+            float left = (getWidth() - w) / 2f;
+            float top = (getHeight() - h) / 2f;
+            int save = canvas.save();
+            bounds.set(0, 0, getWidth(), getHeight());
+            canvas.clipRoundRect(bounds, dp(15), dp(15));
+            canvas.drawColor(Color.BLACK);
+            canvas.translate(left, top);
+            canvas.scale(scale, scale);
+            movie.draw(canvas, 0, 0, logoPaint);
+            canvas.restoreToCount(save);
+            postInvalidateOnAnimation();
+        }
     }
 
     private class ToolIconView extends View {
