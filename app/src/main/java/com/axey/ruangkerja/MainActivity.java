@@ -73,38 +73,65 @@ public class MainActivity extends Activity {
     }
 
     private void renderDeviceProfile(){
-        basePage("DEVICE PROFILE","Profil perangkat","Informasi perangkat yang dapat dibaca aplikasi");
+        basePage("VIRTUAL PROFILE","Profil virtual","Identitas acak untuk pengujian internal RuangKerja");
+        SharedPreferences prefs=getSharedPreferences("virtual_profile",MODE_PRIVATE);
+        ensureVirtualProfile(prefs);
+
         LinearLayout notice=card(); notice.setOrientation(1);
-        notice.addView(txt("CATATAN KEAMANAN",12,NAVY,true));
-        notice.addView(txt("Halaman ini hanya menampilkan informasi yang diizinkan Android. IMEI, serial, Android ID, dan alamat MAC sistem tidak dapat diubah oleh aplikasi biasa.",13,MUTED,false),lp(8));
+        notice.addView(txt("MODE PROFIL UJI",12,NAVY,true));
+        notice.addView(txt("Nilai di bawah adalah identitas simulasi yang disimpan di RuangKerja. Nilai ini belum menggantikan identifier sistem dan tidak otomatis diteruskan ke aplikasi pihak ketiga.",13,MUTED,false),lp(8));
         root.addView(notice,lp(18));
 
         LinearLayout details=card(); details.setOrientation(1);
-        details.addView(txt("INFORMASI PERANGKAT",12,BLUE,true));
-        addInfo(details,"Brand",Build.BRAND);
-        addInfo(details,"Manufacturer",Build.MANUFACTURER);
-        addInfo(details,"Model",Build.MODEL);
-        addInfo(details,"Product",Build.PRODUCT);
-        addInfo(details,"Device",Build.DEVICE);
-        addInfo(details,"Android",Build.VERSION.RELEASE+" (API "+Build.VERSION.SDK_INT+")");
-        addInfo(details,"Build",Build.DISPLAY);
+        details.addView(txt("IDENTITAS VIRTUAL",12,BLUE,true));
+        addInfo(details,"Virtual Android ID",prefs.getString("android_id",""));
+        addInfo(details,"Virtual Advertising ID",prefs.getString("advertising_id",""));
+        addInfo(details,"Virtual Device ID",prefs.getString("device_id",""));
+        addInfo(details,"Virtual IMEI (simulasi)",prefs.getString("imei_sim",""));
+        addInfo(details,"Brand profil",prefs.getString("brand",""));
+        addInfo(details,"Model profil",prefs.getString("model",""));
+        addInfo(details,"Build profil",prefs.getString("build",""));
         root.addView(details,lp(14));
 
-        SharedPreferences prefs=getSharedPreferences("device_profile_ui",MODE_PRIVATE);
-        String profileTag=prefs.getString("profile_tag",null);
-        if(profileTag==null){profileTag=UUID.randomUUID().toString().substring(0,8).toUpperCase();prefs.edit().putString("profile_tag",profileTag).apply();}
-        LinearLayout local=card();local.setOrientation(1);
-        local.addView(txt("ID PROFIL LOKAL",12,BLUE,true));
-        local.addView(txt(profileTag,19,NAVY,true),lp(10));
-        local.addView(txt("Penanda internal RuangKerja saja — bukan IMEI, Android ID, atau identitas perangkat.",12,MUTED,false),lp(5));
-        root.addView(local,lp(14));
-        LinearLayout actions=new LinearLayout(this);actions.setOrientation(0);actions.setGravity(Gravity.CENTER);actions.setPadding(0,dp(4),0,0);
-        Button restore=smallButton("Pulihkan",false);restore.setOnClickListener(v->{prefs.edit().remove("profile_tag").apply();renderDeviceProfile();toast("Penanda lokal dipulihkan.");});
-        Button random=smallButton("Acak penanda",true);random.setOnClickListener(v->{prefs.edit().putString("profile_tag",UUID.randomUUID().toString().substring(0,8).toUpperCase()).apply();renderDeviceProfile();toast("Penanda lokal baru dibuat.");});
-        LinearLayout.LayoutParams half=new LinearLayout.LayoutParams(0,dp(50),1);half.setMargins(0,dp(14),dp(6),0);actions.addView(restore,half);
-        LinearLayout.LayoutParams half2=new LinearLayout.LayoutParams(0,dp(50),1);half2.setMargins(dp(6),dp(14),0,0);actions.addView(random,half2);
-        root.addView(actions);
+        LinearLayout actions=new LinearLayout(this);actions.setOrientation(1);
+        Button random=smallButton("Generate profil acak",true);
+        random.setOnClickListener(v->{generateVirtualProfile(prefs);renderDeviceProfile();toast("Profil virtual baru dibuat.");});
+        actions.addView(random,new LinearLayout.LayoutParams(-1,dp(52)));
+        Button reset=smallButton("Reset profil virtual",false);
+        reset.setOnClickListener(v->{prefs.edit().clear().apply();ensureVirtualProfile(prefs);renderDeviceProfile();toast("Profil virtual direset.");});
+        LinearLayout.LayoutParams resetParams=new LinearLayout.LayoutParams(-1,dp(52));resetParams.topMargin=dp(10);actions.addView(reset,resetParams);
+        root.addView(actions,lp(16));
+        root.addView(txt("Catatan: IMEI simulasi hanya contoh data lokal, bukan IMEI radio/perangkat dan tidak digunakan untuk menyamar sebagai perangkat lain.",12,MUTED,false),lp(14));
         button("Kembali",false,v->renderHome());
+    }
+
+    private void ensureVirtualProfile(SharedPreferences prefs){
+        if(!prefs.contains("device_id")) generateVirtualProfile(prefs);
+    }
+
+    private void generateVirtualProfile(SharedPreferences prefs){
+        String[] brands={"Google","Samsung","Xiaomi","OnePlus","Motorola"};
+        String[][] models={{"Pixel 8","Pixel 8a"},{"Galaxy S23","Galaxy A55"},{"Xiaomi 13T","Redmi Note 13 Pro"},{"OnePlus 11","OnePlus Nord 3"},{"Moto G Power","Edge 40"}};
+        int choice=new java.security.SecureRandom().nextInt(brands.length);
+        java.security.SecureRandom random=new java.security.SecureRandom();
+        StringBuilder simulatedImei=new StringBuilder();
+        for(int i=0;i<14;i++) simulatedImei.append(random.nextInt(10));
+        int sum=0;
+        for(int i=0;i<14;i++){
+            int digit=simulatedImei.charAt(i)-'0';
+            if(i%2==1){digit*=2;if(digit>9)digit-=9;}
+            sum+=digit;
+        }
+        simulatedImei.append((10-(sum%10))%10);
+        prefs.edit()
+            .putString("android_id",UUID.randomUUID().toString().replace("-","").substring(0,16))
+            .putString("advertising_id",UUID.randomUUID().toString())
+            .putString("device_id",UUID.randomUUID().toString())
+            .putString("imei_sim",simulatedImei.toString())
+            .putString("brand",brands[choice])
+            .putString("model",models[choice][random.nextInt(models[choice].length)])
+            .putString("build","RK-"+UUID.randomUUID().toString().substring(0,8).toUpperCase())
+            .apply();
     }
 
     private void addInfo(LinearLayout parent,String label,String value){
