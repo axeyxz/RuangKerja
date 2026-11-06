@@ -528,21 +528,49 @@ public class MainActivity extends Activity {
     }
 
     private void showApps() {
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(18), dp(8), dp(18), 0);
+        panel.addView(text("Cari berdasarkan nama atau package ID aplikasi.", 12, MUTED, false));
+        EditText search = proxyInput("Cari aplikasi…", "");
+        panel.addView(search);
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("App Manager")
+            .setView(panel)
+            .setPositiveButton("CARI", (dialog, which) -> showAppsFiltered(search.getText().toString().trim()))
+            .setNeutralButton("SEMUA APLIKASI", (dialog, which) -> showAppsFiltered(""))
+            .setNegativeButton("APLIKASI TERSEMBUNYI", (dialog, which) -> showHiddenApps())
+            .show();
+    }
+
+    private void showAppsFiltered(String filter) {
         Intent query = new Intent(Intent.ACTION_MAIN, null);
         query.addCategory(Intent.CATEGORY_LAUNCHER);
-        final List<ResolveInfo> apps = getPackageManager().queryIntentActivities(query, 0);
-        Collections.sort(apps, new Comparator<ResolveInfo>() {
+        final List<ResolveInfo> all = getPackageManager().queryIntentActivities(query, 0);
+        Collections.sort(all, new Comparator<ResolveInfo>() {
             @Override public int compare(ResolveInfo a, ResolveInfo b) {
                 return String.valueOf(a.loadLabel(getPackageManager())).compareToIgnoreCase(
                     String.valueOf(b.loadLabel(getPackageManager())));
             }
         });
+        final List<ResolveInfo> apps = new java.util.ArrayList<>();
+        for (ResolveInfo app : all) {
+            String label = String.valueOf(app.loadLabel(getPackageManager()));
+            String pkg = app.activityInfo.packageName;
+            if (filter.isEmpty() || label.toLowerCase(java.util.Locale.ROOT).contains(filter.toLowerCase(java.util.Locale.ROOT)) ||
+                pkg.toLowerCase(java.util.Locale.ROOT).contains(filter.toLowerCase(java.util.Locale.ROOT))) apps.add(app);
+        }
         final String[] names = new String[apps.size()];
-        for (int i = 0; i < apps.size(); i++) names[i] = String.valueOf(apps.get(i).loadLabel(getPackageManager()));
+        for (int i = 0; i < apps.size(); i++)
+            names[i] = String.valueOf(apps.get(i).loadLabel(getPackageManager())) + "\\n" + apps.get(i).activityInfo.packageName;
+        if (apps.isEmpty()) {
+            info("Tidak ada aplikasi yang cocok dengan pencarian: " + filter);
+            return;
+        }
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Aplikasi terpasang (" + apps.size() + ")")
+            .setTitle("Aplikasi ditemukan (" + apps.size() + ")")
             .setItems(names, (dialog, which) -> showAppActions(apps.get(which)))
-            .setNeutralButton("Aplikasi tersembunyi", (dialog, which) -> showHiddenApps())
+            .setNeutralButton("CARI LAGI", (dialog, which) -> showApps())
             .setNegativeButton("Tutup", null).show();
     }
 
@@ -902,11 +930,13 @@ public class MainActivity extends Activity {
             ? new String[] {
                 "Identitas & nama Work Profile",
                 "Tambahkan aplikasi ke Work Profile",
+                "Jeda / lanjutkan Work Profile (pengaturan Android)",
                 "Buka pengaturan Android Work Profile",
                 "Periksa & perbaiki aplikasi",
                 "Kelola aplikasi Workspace",
                 "Bersihkan cache AXEY",
                 "Diagnostik perangkat",
+                "Hapus seluruh Work Profile",
                 "Hapus data AXEY"
             }
             : new String[] {
@@ -923,11 +953,13 @@ public class MainActivity extends Activity {
                     if (which == 0) showProfileIdentitySettings();
                     else if (which == 1) showInstallExistingApp();
                     else if (which == 2) openWorkProfileSettings();
-                    else if (which == 3) showAppCheck();
-                    else if (which == 4) showApps();
-                    else if (which == 5) clearAxeyCache();
-                    else if (which == 6) deviceInfo(true);
-                    else if (which == 7) confirmResetAxeyData();
+                    else if (which == 3) openWorkProfileSettings();
+                    else if (which == 4) showAppCheck();
+                    else if (which == 5) showApps();
+                    else if (which == 6) clearAxeyCache();
+                    else if (which == 7) deviceInfo(true);
+                    else if (which == 8) confirmWipeWorkProfile();
+                    else if (which == 9) confirmResetAxeyData();
                 } else {
                     if (which == 0) provision();
                     else if (which == 1) deviceInfo(false);
@@ -936,6 +968,33 @@ public class MainActivity extends Activity {
                 }
             })
             .setNegativeButton("TUTUP", null)
+            .show();
+    }
+
+    private void confirmWipeWorkProfile() {
+        if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
+            info("Axey bukan Profile Owner. Penghapusan Work Profile harus dilakukan melalui Pengaturan Android.");
+            return;
+        }
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Hapus seluruh Work Profile?")
+            .setMessage("PERINGATAN: semua aplikasi, akun, file, dan data di dalam Work Profile akan dihapus permanen oleh Android. Data di profil pribadi tidak termasuk. Tindakan ini tidak dapat dibatalkan. Pastikan data kerja sudah dicadangkan.")
+            .setNegativeButton("BATAL", null)
+            .setPositiveButton("LANJUTKAN", (dialog, which) ->
+                new android.app.AlertDialog.Builder(this)
+                    .setTitle("Konfirmasi terakhir")
+                    .setMessage("Ketik persetujuan dengan menekan tombol HAPUS PROFIL. Android akan menghapus seluruh ruang kerja Axey.")
+                    .setNegativeButton("BATAL", null)
+                    .setPositiveButton("HAPUS PROFIL", (d, w) -> {
+                        try {
+                            dpm.wipeData(0);
+                        } catch (SecurityException e) {
+                            info("Android menolak penghapusan profil. Hapus Work Profile melalui Pengaturan Android.");
+                        } catch (Exception e) {
+                            info("Work Profile tidak dapat dihapus: " +
+                                (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+                        }
+                    }).show())
             .show();
     }
 
