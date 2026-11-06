@@ -136,7 +136,7 @@ public class MainActivity extends Activity {
         LinearLayout brand = new LinearLayout(this);
         brand.setGravity(Gravity.CENTER_VERTICAL);
         ImageView mark = new ImageView(this);
-        mark.setImageResource(R.drawable.axey_avatar);
+        mark.setImageResource(R.drawable.ic_ruangkerja);
         mark.setScaleType(ImageView.ScaleType.CENTER_CROP);
         GradientDrawable avatarClip = new GradientDrawable();
         avatarClip.setShape(GradientDrawable.OVAL);
@@ -363,11 +363,14 @@ public class MainActivity extends Activity {
                     float y2=18+(float)Math.sin(angle)*14;
                     line(canvas,x1,y1,x2,y2);
                 }
+            } else if ("update".equals(kind)) {
+                canvas.drawArc(6,6,30,30,45,275,false,p);
+                line(canvas,26,5,31,6,30,12);
             } else if ("diagnostics".equals(kind)) {
                 canvas.drawCircle(14,14,9,p);
                 line(canvas,21,21,32,32);
                 line(canvas,10,14,13,17,19,10);
-            } else {
+            } else if ("help".equals(kind)) {
                 canvas.drawCircle(18,18,14,p);
                 p.setTextAlign(Paint.Align.CENTER);
                 p.setTextSize(21);
@@ -380,19 +383,8 @@ public class MainActivity extends Activity {
     }
 
     private void showApps() {
-        LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(18), dp(8), dp(18), 0);
-        panel.addView(text("Cari berdasarkan nama atau package ID aplikasi.", 12, MUTED, false));
-        EditText search = proxyInput("Cari aplikasi…", "");
-        panel.addView(search);
-        new android.app.AlertDialog.Builder(this)
-            .setTitle("App Manager")
-            .setView(panel)
-            .setPositiveButton("CARI", (dialog, which) -> showAppsFiltered(search.getText().toString().trim()))
-            .setNeutralButton("SEMUA APLIKASI", (dialog, which) -> showAppsFiltered(""))
-            .setNegativeButton("APLIKASI TERSEMBUNYI", (dialog, which) -> showHiddenApps())
-            .show();
+        // Launcher apps are queried from the Android user/profile where Axey runs.
+        showAppsFiltered("");
     }
 
     private void showAppsFiltered(String filter) {
