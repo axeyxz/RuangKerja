@@ -7,26 +7,71 @@ on:
 
 jobs:
   build:
-    name: Build Axey Virtual debug APK
+    name: Build Axey Virtual with virtualization engine
     runs-on: ubuntu-latest
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout Axey Virtual project
+        uses: actions/checkout@v4
+
+      - name: Checkout virtualization engine
+        uses: actions/checkout@v4
+        with:
+          repository: fdavids77/BlackBoxReborn
+          ref: main
+          path: engine
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Install Android SDK
-        run: /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0'
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-      - name: Build APK
-        run: gradle --no-daemon assembleDebug
-      - uses: actions/upload-artifact@v4
+
+      - name: Install Android SDK and NDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install 'platforms;android-36' 'build-tools;36.1.0' 'ndk;27.0.12077973'
+
+      - name: Apply Axey Virtual branding
+        working-directory: engine
+        run: |
+          sed -i 's/<string name="app_name">BlackBox<\/string>/<string name="app_name">Axey Virtual<\/string>/' app/src/main/res/values/strings.xml
+          mkdir -p app/src/main/assets
+          cp LICENSE app/src/main/assets/BLACKBOX_LICENSE.txt
+          cat > app/src/main/assets/AXEY_VIRTUAL_NOTICE.txt <<'EOF'
+          Axey Virtual includes the BlackBox Reborn virtualization engine.
+          Upstream: https://github.com/fdavids77/BlackBoxReborn
+          The upstream README describes GPL-3.0, while its LICENSE file contains Apache License 2.0.
+          Review the upstream repository's current licensing and notices before redistribution.
+          Axey Virtual branding and integration are separate from the upstream engine.
+          EOF
+
+      - name: Build virtualization app
+        working-directory: engine
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:assembleDebug
+
+      - name: Prepare install package
+        run: |
+          mkdir -p dist
+          cp engine/app/build/outputs/apk/debug/*.apk dist/Axey-Virtual-debug.apk
+          cp engine/LICENSE dist/BLACKBOX-LICENSE.txt
+          cp engine/README.md dist/BLACKBOX-UPSTREAM-README.md
+          cat > dist/README-INSTALL.txt <<'EOF'
+          Axey Virtual debug build
+          Install Axey-Virtual-debug.apk on the Android device.
+          This build uses the BlackBox Reborn virtualization engine.
+          Compatibility is not guaranteed on every Android 16 device.
+          WhatsApp companion-link/QR pairing is documented upstream as unsupported.
+          EOF
+
+      - name: Upload Axey Virtual APK
+        uses: actions/upload-artifact@v4
         with:
           name: Axey-Virtual-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: dist/*
           if-no-files-found: error
+          retention-days: 30
