@@ -225,7 +225,8 @@ public class MainActivity extends Activity {
             motion.setDuration(9000);
             motion.setInterpolator(new android.view.animation.LinearInterpolator());
         } else if ("proxy".equals(icon)) {
-            motion = ObjectAnimator.ofFloat(badge, View.TRANSLATION_X, -dp(1), dp(1), -dp(1));
+            // The arrows animate independently inside the icon, following their own directions.
+            motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 1f, 0.96f, 1f);
             motion.setDuration(1900);
             motion.setInterpolator(new AccelerateDecelerateInterpolator());
         } else if ("diagnostics".equals(icon)) {
@@ -302,10 +303,24 @@ public class MainActivity extends Activity {
                 float[] x = {5,21,5,21}, y = {5,5,21,21};
                 for (int i=0;i<4;i++) canvas.drawRoundRect(x[i],y[i],x[i]+10,y[i]+10,2,2,paint);
             } else if ("proxy".equals(kind)) {
+                // Upper arrow travels right; lower arrow travels left.
+                float phase = (SystemClock.uptimeMillis() % 1500L) / 1500f;
+                float travel = (float)Math.sin(phase * Math.PI * 2) * 2.0f;
+                canvas.save();
+                canvas.translate(travel, 0);
                 path.reset();
-                path.moveTo(4,12); path.lineTo(30,12); path.moveTo(24,6); path.lineTo(30,12); path.lineTo(24,18);
-                path.moveTo(32,25); path.lineTo(6,25); path.moveTo(12,19); path.lineTo(6,25); path.lineTo(12,31);
+                path.moveTo(4,12); path.lineTo(30,12);
+                path.moveTo(24,6); path.lineTo(30,12); path.lineTo(24,18);
                 canvas.drawPath(path,paint);
+                canvas.restore();
+                canvas.save();
+                canvas.translate(-travel, 0);
+                path.reset();
+                path.moveTo(32,25); path.lineTo(6,25);
+                path.moveTo(12,19); path.lineTo(6,25); path.lineTo(12,31);
+                canvas.drawPath(path,paint);
+                canvas.restore();
+                postInvalidateOnAnimation();
             } else if ("settings".equals(kind)) {
                 canvas.drawCircle(18,18,7,paint);
                 for (int i=0;i<8;i++) {
