@@ -362,9 +362,10 @@ public class MainActivity extends Activity {
         panel.addView(portInput);
         panel.addView(userInput);
         panel.addView(passInput);
-        new android.app.AlertDialog.Builder(this)
+        android.app.AlertDialog proxyDialog = new android.app.AlertDialog.Builder(this)
             .setTitle("Proxy Manager")
             .setView(panel)
+            .setNeutralButton("TES SERVER", null)
             .setPositiveButton("SIMPAN", (dialog, which) -> {
                 String h = hostInput.getText().toString().trim();
                 String po = portInput.getText().toString().trim();
@@ -388,7 +389,38 @@ public class MainActivity extends Activity {
                     "\nJenis: SOCKS5\n\nStatus: belum tersambung. Pengalihan trafik VPN belum aktif.");
             })
             .setNegativeButton("BATAL", null)
-            .show();
+            .create();
+        proxyDialog.setOnShowListener(d -> proxyDialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL)
+            .setOnClickListener(v -> {
+                String testHost = hostInput.getText().toString().trim();
+                int testPort;
+                try { testPort = Integer.parseInt(portInput.getText().toString().trim()); }
+                catch (Exception e) { info("Port harus berupa angka yang valid."); return; }
+                if (testHost.isEmpty() || testPort < 1 || testPort > 65535) {
+                    info("Isi alamat server dan port yang valid terlebih dahulu.");
+                    return;
+                }
+                Toast.makeText(this, "Menguji koneksi server…", Toast.LENGTH_SHORT).show();
+                new Thread(() -> {
+                    boolean reachable = false;
+                    String detail = "";
+                    java.net.Socket socket = new java.net.Socket();
+                    try {
+                        socket.connect(new java.net.InetSocketAddress(testHost, testPort), 5000);
+                        reachable = true;
+                    } catch (Exception e) {
+                        detail = e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage());
+                    } finally {
+                        try { socket.close(); } catch (Exception ignored) { }
+                    }
+                    final boolean ok = reachable;
+                    final String reason = detail;
+                    runOnUiThread(() -> info(ok
+                        ? "Server dapat dijangkau melalui TCP.\n\nCatatan: ini hanya tes port, belum memverifikasi autentikasi proxy atau IP keluar."
+                        : "Server tidak dapat dijangkau.\n\n" + reason));
+                }).start();
+            }));
+        proxyDialog.show();
     }
 
     private EditText proxyInput(String hint, String value) {
