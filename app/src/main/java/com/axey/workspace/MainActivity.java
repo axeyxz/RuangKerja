@@ -12,8 +12,6 @@ import android.graphics.Color;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Movie;
-import android.os.SystemClock;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -95,9 +93,28 @@ public class MainActivity extends Activity {
 
         LinearLayout brand = new LinearLayout(this);
         brand.setGravity(Gravity.CENTER_VERTICAL);
-        AnimatedLogoView mark = new AnimatedLogoView();
-        mark.setBackground(shape(Color.BLACK, 15, 0));
+        TextView mark = text("A", 29, Color.WHITE, true);
+        mark.setGravity(Gravity.CENTER);
+        mark.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
+        GradientDrawable logoBg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+            new int[] { 0xFF123B68, 0xFF087FE0, 0xFF061629 });
+        logoBg.setCornerRadius(dp(15));
+        logoBg.setStroke(dp(1), 0xFF258FEA);
+        mark.setBackground(logoBg);
+        mark.setShadowLayer(dp(8), 0, 0, 0xAA087FE0);
         brand.addView(mark, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        ObjectAnimator logoPulse = ObjectAnimator.ofFloat(mark, View.SCALE_X, 1f, 1.045f, 1f);
+        logoPulse.setDuration(2100);
+        logoPulse.setRepeatCount(ObjectAnimator.INFINITE);
+        logoPulse.setInterpolator(new AccelerateDecelerateInterpolator());
+        ObjectAnimator logoPulseY = ObjectAnimator.ofFloat(mark, View.SCALE_Y, 1f, 1.045f, 1f);
+        logoPulseY.setDuration(2100);
+        logoPulseY.setRepeatCount(ObjectAnimator.INFINITE);
+        logoPulseY.setInterpolator(new AccelerateDecelerateInterpolator());
+        mark.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View view) { logoPulse.start(); logoPulseY.start(); }
+            @Override public void onViewDetachedFromWindow(View view) { logoPulse.cancel(); logoPulseY.cancel(); }
+        });
         LinearLayout brandText = new LinearLayout(this);
         brandText.setOrientation(LinearLayout.VERTICAL);
         brandText.setPadding(dp(12), 0, 0, 0);
@@ -202,25 +219,49 @@ public class MainActivity extends Activity {
         badge.setBackground(shape(PANEL_2, 12, 0));
         top.addView(badge, new LinearLayout.LayoutParams(dp(42), dp(42)));
         ObjectAnimator motion;
+        ObjectAnimator motionY = null;
         if ("settings".equals(icon)) {
             motion = ObjectAnimator.ofFloat(badge, View.ROTATION, 0f, 360f);
-            motion.setDuration(6500);
+            motion.setDuration(9000);
+            motion.setInterpolator(new android.view.animation.LinearInterpolator());
         } else if ("proxy".equals(icon)) {
-            motion = ObjectAnimator.ofFloat(badge, View.TRANSLATION_X, -dp(2), dp(2), -dp(2));
-            motion.setDuration(1500);
+            motion = ObjectAnimator.ofFloat(badge, View.TRANSLATION_X, -dp(1), dp(1), -dp(1));
+            motion.setDuration(1900);
+            motion.setInterpolator(new AccelerateDecelerateInterpolator());
         } else if ("diagnostics".equals(icon)) {
-            motion = ObjectAnimator.ofFloat(badge, View.SCALE_X, 1f, 1.10f, 1f);
-            motion.setDuration(1700);
-        } else {
-            motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 0.72f, 1f, 0.72f);
+            motion = ObjectAnimator.ofFloat(badge, View.SCALE_X, 1f, 1.09f, 1f);
+            motionY = ObjectAnimator.ofFloat(badge, View.SCALE_Y, 1f, 1.09f, 1f);
             motion.setDuration(1800);
+            motionY.setDuration(1800);
+            motion.setInterpolator(new AccelerateDecelerateInterpolator());
+            motionY.setInterpolator(new AccelerateDecelerateInterpolator());
+        } else if ("apps".equals(icon)) {
+            motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 0.88f, 1f, 0.88f);
+            motion.setDuration(2300);
+            motion.setInterpolator(new AccelerateDecelerateInterpolator());
+        } else {
+            motion = ObjectAnimator.ofFloat(badge, View.ROTATION, -7f, 7f, -7f);
+            motion.setDuration(2400);
+            motion.setInterpolator(new AccelerateDecelerateInterpolator());
         }
         motion.setRepeatCount(ObjectAnimator.INFINITE);
-        motion.setInterpolator(new AccelerateDecelerateInterpolator());
-        motion.setStartDelay(Math.abs(title.hashCode() % 500));
+        if (motionY != null) motionY.setRepeatCount(ObjectAnimator.INFINITE);
+        motion.setStartDelay(Math.abs(title.hashCode() % 400));
+        final ObjectAnimator extraMotion = motionY;
         badge.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-            @Override public void onViewAttachedToWindow(View view) { motion.start(); }
-            @Override public void onViewDetachedFromWindow(View view) { motion.cancel(); }
+            @Override public void onViewAttachedToWindow(View view) {
+                motion.start();
+                if (extraMotion != null) extraMotion.start();
+            }
+            @Override public void onViewDetachedFromWindow(View view) {
+                motion.cancel();
+                if (extraMotion != null) extraMotion.cancel();
+                badge.setRotation(0f);
+                badge.setScaleX(1f);
+                badge.setScaleY(1f);
+                badge.setTranslationX(0f);
+                badge.setAlpha(1f);
+            }
         });
         TextView heading = text(title, 16, Color.WHITE, true);
         heading.setPadding(dp(12), 0, 0, 0);
@@ -235,41 +276,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
         p.bottomMargin = dp(11);
         root.addView(card, p);
-    }
-
-    private class AnimatedLogoView extends View {
-        private final Movie movie;
-        private final Paint logoPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        private final android.graphics.RectF bounds = new android.graphics.RectF();
-        AnimatedLogoView() {
-            super(MainActivity.this);
-            Movie decoded = null;
-            try { decoded = Movie.decodeStream(getResources().openRawResource(R.raw.axey_logo)); }
-            catch (Exception ignored) { }
-            movie = decoded;
-        }
-        @Override protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            if (movie == null || movie.width() <= 0 || movie.height() <= 0) return;
-            int duration = movie.duration() > 0 ? movie.duration() : 900;
-            movie.setTime((int)(SystemClock.uptimeMillis() % duration));
-            float scale = Math.max(getWidth() / (float) movie.width(), getHeight() / (float) movie.height());
-            float w = movie.width() * scale;
-            float h = movie.height() * scale;
-            float left = (getWidth() - w) / 2f;
-            float top = (getHeight() - h) / 2f;
-            int save = canvas.save();
-            bounds.set(0, 0, getWidth(), getHeight());
-            Path clip = new Path();
-            clip.addRoundRect(bounds, dp(15), dp(15), Path.Direction.CW);
-            canvas.clipPath(clip);
-            canvas.drawColor(Color.BLACK);
-            canvas.translate(left, top);
-            canvas.scale(scale, scale);
-            movie.draw(canvas, 0, 0, logoPaint);
-            canvas.restoreToCount(save);
-            postInvalidateOnAnimation();
-        }
     }
 
     private class ToolIconView extends View {
