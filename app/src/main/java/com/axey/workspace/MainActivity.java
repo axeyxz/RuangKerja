@@ -818,9 +818,9 @@ public class MainActivity extends Activity {
             .show();
     }
 
-    private void showAppRepair() {
+    private void showAppCheck() {
         if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
-            info("App Repair membutuhkan AXEY sebagai pengelola Work Profile. Buka AXEY dari dalam Work Profile yang ingin diperbaiki.");
+            info("Buka AXEY dari profil tempat aplikasi yang ingin diperiksa terpasang.");
             return;
         }
         Intent query = new Intent(Intent.ACTION_MAIN, null);
@@ -846,12 +846,12 @@ public class MainActivity extends Activity {
             .setNegativeButton("TUTUP", null).show();
     }
 
-    private void showAppRepairActions(ResolveInfo app) {
+    private void showAppCheckActions(ResolveInfo app) {
         String pkg = app.activityInfo.packageName;
         String label = String.valueOf(app.loadLabel(getPackageManager()));
         String[] actions = { "Buka ulang aplikasi", "Buka info aplikasi Android", "Periksa status aplikasi" };
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Perbaiki " + label)
+            .setTitle("Pemeriksaan: " + label)
             .setItems(actions, (dialog, which) -> {
                 if (which == 0) {
                     try {
