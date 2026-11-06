@@ -27,6 +27,7 @@ import android.widget.Toast;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.ImageView;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -95,15 +96,15 @@ public class MainActivity extends Activity {
 
         LinearLayout brand = new LinearLayout(this);
         brand.setGravity(Gravity.CENTER_VERTICAL);
-        TextView mark = text("A", 29, Color.WHITE, true);
-        mark.setGravity(Gravity.CENTER);
-        mark.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
-        GradientDrawable logoBg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-            new int[] { 0xFF123B68, 0xFF087FE0, 0xFF061629 });
-        logoBg.setCornerRadius(dp(15));
-        logoBg.setStroke(dp(1), 0xFF258FEA);
-        mark.setBackground(logoBg);
-        mark.setShadowLayer(dp(8), 0, 0, 0xAA087FE0);
+        ImageView mark = new ImageView(this);
+        mark.setImageResource(R.drawable.axey_avatar);
+        mark.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        GradientDrawable avatarClip = new GradientDrawable();
+        avatarClip.setShape(GradientDrawable.OVAL);
+        avatarClip.setColor(Color.TRANSPARENT);
+        mark.setBackground(avatarClip);
+        mark.setClipToOutline(true);
+        mark.setElevation(dp(5));
         brand.addView(mark, new LinearLayout.LayoutParams(dp(48), dp(48)));
         ObjectAnimator logoPulse = ObjectAnimator.ofFloat(mark, View.SCALE_X, 1f, 1.045f, 1f);
         logoPulse.setDuration(2400);
