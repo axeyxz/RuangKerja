@@ -889,39 +889,112 @@ public class MainActivity extends Activity {
 
     private void showProfileSettingsMenu() {
         boolean owner = dpm != null && dpm.isProfileOwnerApp(getPackageName());
-        String[] actions = new String[] {
-            "Periksa & perbaiki Workspace",
-            "Periksa aplikasi",
-            "Bersihkan cache AXEY",
-            "Kelola aplikasi Workspace",
-            "Hapus data AXEY"
-        };
+        String profileName = "Belum tersedia";
+        if (owner) {
+            try { profileName = dpm.getProfileName(new ComponentName(this, WorkspaceAdminReceiver.class)); }
+            catch (Exception ignored) { profileName = "Axey Workspace"; }
+        }
+        String summary = owner
+            ? "STATUS: AKTIF\nNama profil: " + (profileName == null ? "Work Profile" : profileName) +
+              "\nPengelola: Axey Workspace\n\nAtur identitas profil, periksa aplikasi, dan buka pengaturan resmi Android."
+            : "STATUS: BELUM AKTIF\nBuat Work Profile terlebih dahulu agar pengaturan profil tersedia. Perawatan AXEY tetap dapat digunakan.";
+        String[] actions = owner
+            ? new String[] {
+                "Identitas & nama Work Profile",
+                "Buka pengaturan Android Work Profile",
+                "Periksa & perbaiki aplikasi",
+                "Kelola aplikasi Workspace",
+                "Bersihkan cache AXEY",
+                "Diagnostik perangkat",
+                "Hapus data AXEY"
+            }
+            : new String[] {
+                "Buat Work Profile",
+                "Diagnostik perangkat",
+                "Bersihkan cache AXEY",
+                "Hapus data AXEY"
+            };
         new android.app.AlertDialog.Builder(this)
             .setTitle("Profile Settings")
-            .setMessage(owner
-                ? "Pusat perawatan ruang kerja Android yang dikelola AXEY."
-                : "AXEY belum menjadi pengelola Work Profile. Beberapa tindakan hanya tersedia setelah profil aktif.")
+            .setMessage(summary)
             .setItems(actions, (dialog, which) -> {
-                if (which == 0) {
-                    boolean active = dpm != null && dpm.isProfileOwnerApp(getPackageName());
-                    if (active) {
-                        render();
-                        info("Pemeriksaan selesai. AXEY terdaftar sebagai pengelola Work Profile. Dashboard telah diperbarui. Jika aplikasi lain masih bermasalah, buka Kelola aplikasi untuk memeriksanya satu per satu.");
-                    } else {
-                        deviceInfo(false);
-                    }
-                } else if (which == 1) {
-                    showAppCheck();
-                } else if (which == 2) {
-                    clearAxeyCache();
-                } else if (which == 3) {
-                    showApps();
-                } else if (which == 4) {
-                    confirmResetAxeyData();
+                if (owner) {
+                    if (which == 0) showProfileIdentitySettings();
+                    else if (which == 1) openWorkProfileSettings();
+                    else if (which == 2) showAppCheck();
+                    else if (which == 3) showApps();
+                    else if (which == 4) clearAxeyCache();
+                    else if (which == 5) deviceInfo(true);
+                    else if (which == 6) confirmResetAxeyData();
+                } else {
+                    if (which == 0) provision();
+                    else if (which == 1) deviceInfo(false);
+                    else if (which == 2) clearAxeyCache();
+                    else if (which == 3) confirmResetAxeyData();
                 }
             })
             .setNegativeButton("TUTUP", null)
             .show();
+    }
+
+    private void showProfileIdentitySettings() {
+        if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
+            info("Axey harus menjadi Profile Owner untuk mengubah identitas Work Profile.");
+            return;
+        }
+        String current = "Axey Workspace";
+        try {
+            String stored = dpm.getProfileName(new ComponentName(this, WorkspaceAdminReceiver.class));
+            if (stored != null && !stored.trim().isEmpty()) current = stored;
+        } catch (Exception ignored) { }
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(18), dp(8), dp(18), 0);
+        panel.addView(text("Nama ini digunakan Android untuk mengenali ruang kerja terkelola.", 12, MUTED, false));
+        space(panel, 10);
+        EditText nameInput = proxyInput("Nama Work Profile", current);
+        nameInput.setSingleLine(true);
+        panel.addView(nameInput);
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Identitas Work Profile")
+            .setView(panel)
+            .setNegativeButton("BATAL", null)
+            .setNeutralButton("PENGATURAN ANDROID", (dialog, which) -> openWorkProfileSettings())
+            .setPositiveButton("SIMPAN", (dialog, which) -> {
+                String name = nameInput.getText().toString().trim();
+                if (name.isEmpty() || name.length() > 40) {
+                    info("Nama profil harus berisi 1 sampai 40 karakter.");
+                    return;
+                }
+                try {
+                    dpm.setProfileName(new ComponentName(this, WorkspaceAdminReceiver.class), name);
+                    info("Nama Work Profile berhasil diperbarui menjadi: " + name);
+                    showProfileSettingsMenu();
+                } catch (SecurityException e) {
+                    info("Android menolak perubahan nama profil.");
+                } catch (Exception e) {
+                    info("Nama profil tidak dapat diperbarui: " +
+                        (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+                }
+            }).show();
+    }
+
+    private void openWorkProfileSettings() {
+        if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
+            info("Pengaturan Work Profile tersedia setelah Axey menjadi pengelola profil.");
+            return;
+        }
+        try {
+            Intent intent = new Intent("android.settings.MANAGED_PROFILE_SETTINGS");
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                startActivity(intent);
+            } else {
+                Intent fallback = new Intent(android.provider.Settings.ACTION_SYNC_SETTINGS);
+                startActivity(fallback);
+            }
+        } catch (Exception e) {
+            info("Halaman pengaturan Work Profile tidak tersedia pada ROM ini. Gunakan Pengaturan Android > Akun > Work Profile.");
+        }
     }
 
     private void showAppCheck() {
