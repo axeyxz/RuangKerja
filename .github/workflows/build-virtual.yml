@@ -31,8 +31,8 @@ jobs:
 
       - name: Install Android SDK and NDK
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager --install 'platforms;android-36' 'build-tools;36.1.0' 'ndk;27.0.12077973'
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.1.0' 'ndk;27.0.12077973'
 
       - name: Apply Axey Virtual branding
         working-directory: engine
