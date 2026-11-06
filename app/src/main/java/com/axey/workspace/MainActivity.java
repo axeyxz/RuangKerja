@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
         lightMode = getPreferences(MODE_PRIVATE).getBoolean("light_mode", false);
         applyTheme();
         render();
-        UpdateManager.checkForUpdate(this, BuildConfig.VERSION_NAME);
+        UpdateManager.checkForUpdate(this);
     }
 
     @Override protected void onResume() {
