@@ -20,6 +20,8 @@ import android.widget.TextView;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 public class MainActivity extends Activity {
     private static final int BG = Color.rgb(5, 10, 20);
@@ -213,15 +215,12 @@ public class MainActivity extends Activity {
                     String.valueOf(b.loadLabel(getPackageManager())));
             }
         });
-        if (apps.isEmpty()) {
-            info("Tidak ditemukan aplikasi yang bisa dibuka pada profil Android saat ini.");
-            return;
-        }
         final String[] names = new String[apps.size()];
         for (int i = 0; i < apps.size(); i++) names[i] = String.valueOf(apps.get(i).loadLabel(getPackageManager()));
         new android.app.AlertDialog.Builder(this)
             .setTitle("Aplikasi terpasang (" + apps.size() + ")")
             .setItems(names, (dialog, which) -> showAppActions(apps.get(which)))
+            .setNeutralButton("Aplikasi tersembunyi", (dialog, which) -> showHiddenApps())
             .setNegativeButton("Tutup", null).show();
     }
 
@@ -258,6 +257,38 @@ public class MainActivity extends Activity {
             .setNegativeButton("Batal", null).show();
     }
 
+    private void showHiddenApps() {
+        if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
+            info("Daftar aplikasi tersembunyi tersedia setelah Axey menjadi pengelola Work Profile.");
+            return;
+        }
+        Set<String> hidden = getSharedPreferences("axey_hidden_apps", MODE_PRIVATE)
+            .getStringSet("packages", new HashSet<String>());
+        final String[] packages = hidden.toArray(new String[0]);
+        if (packages.length == 0) {
+            info("Belum ada aplikasi yang disembunyikan melalui Axey pada perangkat ini.");
+            return;
+        }
+        String[] labels = new String[packages.length];
+        for (int i = 0; i < packages.length; i++) {
+            try {
+                labels[i] = String.valueOf(getPackageManager().getApplicationLabel(
+                    getPackageManager().getApplicationInfo(packages[i], 0)));
+            } catch (Exception e) {
+                labels[i] = packages[i];
+            }
+        }
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Aplikasi tersembunyi (" + packages.length + ")")
+            .setItems(labels, (dialog, which) -> new android.app.AlertDialog.Builder(this)
+                .setTitle("Tampilkan kembali " + labels[which] + "?")
+                .setMessage("Aplikasi akan kembali terlihat di Work Profile.")
+                .setNegativeButton("Batal", null)
+                .setPositiveButton("Tampilkan", (confirm, choice) -> setAppHidden(packages[which], false))
+                .show())
+            .setNegativeButton("Tutup", null).show();
+    }
+
     private void launchApp(String pkg) {
         Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
         if (launch != null) {
@@ -278,6 +309,13 @@ public class MainActivity extends Activity {
         try {
             boolean changed = dpm.setApplicationHidden(
                 new ComponentName(this, WorkspaceAdminReceiver.class), pkg, hidden);
+            if (changed) {
+                Set<String> saved = new HashSet<>(getSharedPreferences("axey_hidden_apps", MODE_PRIVATE)
+                    .getStringSet("packages", new HashSet<String>()));
+                if (hidden) saved.add(pkg); else saved.remove(pkg);
+                getSharedPreferences("axey_hidden_apps", MODE_PRIVATE).edit()
+                    .putStringSet("packages", saved).apply();
+            }
             info(changed
                 ? (hidden ? "Aplikasi disembunyikan dari Work Profile." : "Aplikasi ditampilkan kembali di Work Profile.")
                 : "Android tidak mengubah status aplikasi tersebut.");
