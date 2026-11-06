@@ -26,7 +26,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 
-public class MainActivity extends Activity {\n    private static final int VPN_REQUEST_CODE = 7401;
+public class MainActivity extends Activity {
+    private static final int VPN_REQUEST_CODE = 7401;
     private static final int BG = Color.rgb(5, 10, 20);
     private static final int PANEL = Color.rgb(14, 25, 43);
     private static final int PANEL_2 = Color.rgb(19, 37, 61);
