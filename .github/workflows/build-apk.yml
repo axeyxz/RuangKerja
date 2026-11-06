@@ -9,6 +9,9 @@ jobs:
   build:
     name: Build debug APK
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -17,12 +20,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
       - name: Install Android 14 SDK platform
-        run: sdkmanager --install 'platforms;android-34'
+        run: /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --install 'platforms;android-34'
       - name: Install Android 14 build tools
-        run: sdkmanager --install 'build-tools;34.0.0'
+        run: /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --install 'build-tools;34.0.0'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
