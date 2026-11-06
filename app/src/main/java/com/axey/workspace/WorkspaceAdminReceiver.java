@@ -12,7 +12,8 @@ public class WorkspaceAdminReceiver extends DeviceAdminReceiver {
         DevicePolicyManager dpm =
             (DevicePolicyManager) context.getSystemService(Context.DEVICE_POLICY_SERVICE);
         if (dpm != null && dpm.isProfileOwnerApp(context.getPackageName())) {
-            dpm.setProfileName(getWho(context), "Axey Workspace");
+            dpm.setProfileName(new android.content.ComponentName(context, WorkspaceAdminReceiver.class),
+                "Axey Workspace");
             Toast.makeText(context, "Work Profile Axey siap digunakan", Toast.LENGTH_LONG).show();
         }
     }
