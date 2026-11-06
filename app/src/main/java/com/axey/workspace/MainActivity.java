@@ -901,6 +901,7 @@ public class MainActivity extends Activity {
         String[] actions = owner
             ? new String[] {
                 "Identitas & nama Work Profile",
+                "Tambahkan aplikasi ke Work Profile",
                 "Buka pengaturan Android Work Profile",
                 "Periksa & perbaiki aplikasi",
                 "Kelola aplikasi Workspace",
@@ -920,12 +921,13 @@ public class MainActivity extends Activity {
             .setItems(actions, (dialog, which) -> {
                 if (owner) {
                     if (which == 0) showProfileIdentitySettings();
-                    else if (which == 1) openWorkProfileSettings();
-                    else if (which == 2) showAppCheck();
-                    else if (which == 3) showApps();
-                    else if (which == 4) clearAxeyCache();
-                    else if (which == 5) deviceInfo(true);
-                    else if (which == 6) confirmResetAxeyData();
+                    else if (which == 1) showInstallExistingApp();
+                    else if (which == 2) openWorkProfileSettings();
+                    else if (which == 3) showAppCheck();
+                    else if (which == 4) showApps();
+                    else if (which == 5) clearAxeyCache();
+                    else if (which == 6) deviceInfo(true);
+                    else if (which == 7) confirmResetAxeyData();
                 } else {
                     if (which == 0) provision();
                     else if (which == 1) deviceInfo(false);
@@ -974,6 +976,52 @@ public class MainActivity extends Activity {
                     info("Android menolak perubahan nama profil.");
                 } catch (Exception e) {
                     info("Nama profil tidak dapat diperbarui: " +
+                        (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+                }
+            }).show();
+    }
+
+    private void showInstallExistingApp() {
+        if (Build.VERSION.SDK_INT < 28) {
+            info("Penambahan aplikasi yang sudah terpasang memerlukan Android 9 atau lebih baru.");
+            return;
+        }
+        if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
+            info("Axey harus menjadi pengelola Work Profile untuk menambahkan aplikasi.");
+            return;
+        }
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(18), dp(8), dp(18), 0);
+        panel.addView(text("Masukkan package ID aplikasi yang sudah terpasang pada perangkat utama. Android akan mencoba memasang salinannya ke Work Profile tanpa menghapus aplikasi atau data pribadi.", 12, MUTED, false));
+        space(panel, 10);
+        EditText packageInput = proxyInput("Contoh: com.whatsapp", "");
+        packageInput.setSingleLine(true);
+        packageInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+            android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        panel.addView(packageInput);
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Tambahkan aplikasi")
+            .setView(panel)
+            .setNegativeButton("BATAL", null)
+            .setPositiveButton("TAMBAHKAN", (dialog, which) -> {
+                String packageName = packageInput.getText().toString().trim();
+                if (!packageName.matches("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+")) {
+                    info("Package ID tidak valid. Contoh format: com.whatsapp");
+                    return;
+                }
+                try {
+                    boolean installed = dpm.installExistingPackage(
+                        new ComponentName(this, WorkspaceAdminReceiver.class), packageName);
+                    info(installed
+                        ? "Permintaan pemasangan dikirim ke Android untuk " + packageName +
+                          ". Periksa daftar aplikasi Work Profile beberapa saat lagi."
+                        : "Android tidak memasang " + packageName +
+                          ". Pastikan aplikasi tersedia pada perangkat utama dan kompatibel dengan Work Profile.");
+                } catch (SecurityException e) {
+                    info("Android menolak pemasangan aplikasi ini. Pastikan Axey masih menjadi Profile Owner.");
+                } catch (Exception e) {
+                    info("Tidak dapat menambahkan aplikasi: " +
                         (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
                 }
             }).show();
