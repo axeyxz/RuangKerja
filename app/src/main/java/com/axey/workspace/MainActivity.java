@@ -9,6 +9,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -139,15 +142,15 @@ public class MainActivity extends Activity {
 
         space(root, 25);
         section("WORKSPACE TOOLS");
-        addTool("▦", "App manager", "Lihat dan buka aplikasi pada ruang Android ini.",
+        addTool("apps", "App manager", "Lihat dan buka aplikasi pada ruang Android ini.",
             "BUKA DAFTAR APLIKASI", v -> showApps());
-        addTool("⇄", "Proxy manager", "Simpan konfigurasi proxy SOCKS5 untuk tahap pengalihan trafik VPN.",
+        addTool("proxy", "Proxy manager", "Simpan konfigurasi proxy SOCKS5 untuk tahap pengalihan trafik VPN.",
             "ATUR PROXY", v -> showProxyManager());
-        addTool("⚙", "Profile settings", "Buka pengaturan aplikasi Android.",
+        addTool("settings", "Profile settings", "Buka pengaturan aplikasi Android.",
             "BUKA PENGATURAN", v -> openSettings("android.settings.MANAGE_APPLICATIONS_SETTINGS"));
-        addTool("⌖", "Device diagnostics", "Periksa versi Android dan kesiapan Work Profile.",
+        addTool("diagnostics", "Device diagnostics", "Periksa versi Android dan kesiapan Work Profile.",
             "LIHAT DIAGNOSTIK", v -> deviceInfo(owner));
-        addTool("◇", "Help & safety", "Ketahui batasan dan cara kerja profil terkelola.",
+        addTool("help", "Help & safety", "Ketahui batasan dan cara kerja profil terkelola.",
             "BACA INFORMASI", v -> info("Work Profile adalah fitur Android. Axey tidak membuat mesin virtual dan tidak dapat melewati pembatasan sistem. Ketersediaan pembuatan profil ditentukan oleh perangkat dan kebijakan Android."));
         space(root, 18);
         TextView footer = text("AXEY WORKSPACE  •  BUILT FOR ANDROID", 10, 0xFF657B98, true);
@@ -194,37 +197,29 @@ public class MainActivity extends Activity {
         card.setBackground(shape(PANEL, 19, 0));
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        TextView badge = text(icon, 19, BLUE, true);
-        badge.setGravity(Gravity.CENTER);
+        ToolIconView badge = new ToolIconView(icon);
         badge.setBackground(shape(PANEL_2, 12, 0));
         top.addView(badge, new LinearLayout.LayoutParams(dp(42), dp(42)));
-        // Gentle repeating pulse gives each tool icon a little life without distracting.
-        ObjectAnimator pulse = ObjectAnimator.ofFloat(badge, View.SCALE_X, 1f, 1.07f, 1f);
-        pulse.setDuration(1900);
-        pulse.setRepeatCount(ObjectAnimator.INFINITE);
-        pulse.setInterpolator(new AccelerateDecelerateInterpolator());
-        pulse.setStartDelay(Math.abs(title.hashCode() % 650));
-        ObjectAnimator pulseY = ObjectAnimator.ofFloat(badge, View.SCALE_Y, 1f, 1.07f, 1f);
-        pulseY.setDuration(1900);
-        pulseY.setRepeatCount(ObjectAnimator.INFINITE);
-        pulseY.setInterpolator(new AccelerateDecelerateInterpolator());
-        pulseY.setStartDelay(Math.abs(title.hashCode() % 650));
-        ObjectAnimator breathe = ObjectAnimator.ofFloat(badge, View.ALPHA, 0.82f, 1f, 0.82f);
-        breathe.setDuration(1900);
-        breathe.setRepeatCount(ObjectAnimator.INFINITE);
-        breathe.setInterpolator(new AccelerateDecelerateInterpolator());
-        breathe.setStartDelay(Math.abs(title.hashCode() % 650));
+        ObjectAnimator motion;
+        if ("settings".equals(icon)) {
+            motion = ObjectAnimator.ofFloat(badge, View.ROTATION, 0f, 360f);
+            motion.setDuration(6500);
+        } else if ("proxy".equals(icon)) {
+            motion = ObjectAnimator.ofFloat(badge, View.TRANSLATION_X, -dp(2), dp(2), -dp(2));
+            motion.setDuration(1500);
+        } else if ("diagnostics".equals(icon)) {
+            motion = ObjectAnimator.ofFloat(badge, View.SCALE_X, 1f, 1.10f, 1f);
+            motion.setDuration(1700);
+        } else {
+            motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 0.72f, 1f, 0.72f);
+            motion.setDuration(1800);
+        }
+        motion.setRepeatCount(ObjectAnimator.INFINITE);
+        motion.setInterpolator(new AccelerateDecelerateInterpolator());
+        motion.setStartDelay(Math.abs(title.hashCode() % 500));
         badge.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-            @Override public void onViewAttachedToWindow(View view) {
-                pulse.start();
-                pulseY.start();
-                breathe.start();
-            }
-            @Override public void onViewDetachedFromWindow(View view) {
-                pulse.cancel();
-                pulseY.cancel();
-                breathe.cancel();
-            }
+            @Override public void onViewAttachedToWindow(View view) { motion.start(); }
+            @Override public void onViewDetachedFromWindow(View view) { motion.cancel(); }
         });
         TextView heading = text(title, 16, Color.WHITE, true);
         heading.setPadding(dp(12), 0, 0, 0);
@@ -239,6 +234,57 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
         p.bottomMargin = dp(11);
         root.addView(card, p);
+    }
+
+    private class ToolIconView extends View {
+        private final String kind;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path path = new Path();
+        ToolIconView(String kind) { super(MainActivity.this); this.kind = kind; }
+        private void setup(float width) {
+            paint.setColor(0xFF27A5FF);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(width);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setStrokeJoin(Paint.Join.ROUND);
+        }
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float scale = Math.min(getWidth(), getHeight()) / 42f;
+            canvas.save();
+            canvas.translate((getWidth()-36*scale)/2f,(getHeight()-36*scale)/2f);
+            canvas.scale(scale,scale);
+            setup(2.4f);
+            if ("apps".equals(kind)) {
+                paint.setStyle(Paint.Style.FILL);
+                float[] x = {5,21,5,21}, y = {5,5,21,21};
+                for (int i=0;i<4;i++) canvas.drawRoundRect(x[i],y[i],x[i]+10,y[i]+10,2,2,paint);
+            } else if ("proxy".equals(kind)) {
+                path.reset();
+                path.moveTo(4,12); path.lineTo(30,12); path.moveTo(24,6); path.lineTo(30,12); path.lineTo(24,18);
+                path.moveTo(32,25); path.lineTo(6,25); path.moveTo(12,19); path.lineTo(6,25); path.lineTo(12,31);
+                canvas.drawPath(path,paint);
+            } else if ("settings".equals(kind)) {
+                canvas.drawCircle(18,18,7,paint);
+                for (int i=0;i<8;i++) {
+                    double angle = Math.PI*i/4;
+                    float x=(float)Math.cos(angle), y=(float)Math.sin(angle);
+                    canvas.drawLine(18+x*9,18+y*9,18+x*13,18+y*13,paint);
+                }
+                canvas.drawCircle(18,18,2,paint);
+            } else if ("diagnostics".equals(kind)) {
+                canvas.drawCircle(15,15,9,paint);
+                canvas.drawLine(22,22,32,32,paint);
+                canvas.drawLine(11,15,14,18,paint);
+                canvas.drawLine(14,18,20,11,paint);
+            } else {
+                paint.setTextSize(31);
+                paint.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
+                canvas.drawText("?",8,29,paint);
+                canvas.drawCircle(18,18,16,paint);
+            }
+            canvas.restore();
+        }
     }
 
     private void showApps() {
