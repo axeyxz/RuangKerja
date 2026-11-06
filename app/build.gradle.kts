@@ -2,7 +2,7 @@ plugins { id("com.android.application") }
 
 android {
     namespace = "com.axey.virtual"
-    compileSdk = 36
+    compileSdk = 35
     defaultConfig {
         applicationId = "com.axey.virtual"
         minSdk = 26
