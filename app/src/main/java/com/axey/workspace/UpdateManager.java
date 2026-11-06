@@ -48,10 +48,25 @@ public final class UpdateManager {
     }
 
     public static void checkForUpdate(Activity activity, String currentVersion) {
+        checkForUpdate(activity, currentVersion, false);
+    }
+
+    public static void checkForUpdateNow(Activity activity) {
+        if (activity == null) return;
+        try {
+            String installedVersion = activity.getPackageManager()
+                .getPackageInfo(activity.getPackageName(), 0).versionName;
+            checkForUpdate(activity, installedVersion == null ? "0" : installedVersion, true);
+        } catch (Exception e) {
+            Log.w(TAG, "Cannot read installed app version", e);
+        }
+    }
+
+    private static void checkForUpdate(Activity activity, String currentVersion, boolean force) {
         if (activity == null || activity.isFinishing() || checking) return;
         SharedPreferences prefs = activity.getSharedPreferences(PREFS, Activity.MODE_PRIVATE);
         long last = prefs.getLong("last_check", 0L);
-        if (System.currentTimeMillis() - last < CHECK_INTERVAL) return;
+        if (!force && System.currentTimeMillis() - last < CHECK_INTERVAL) return;
         checking = true;
         new Thread(() -> {
             try {
