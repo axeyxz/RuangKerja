@@ -48,7 +48,7 @@ public class MainActivity extends Activity {
         surface=dark?0xff1c1c23:Color.WHITE;
         text=dark?0xfff5f3f5:0xff17171d;
         muted=dark?0xffaaa6b0:0xff77737e;
-        accent=0xfff04455;
+        accent=0xff159cff;
         line=dark?0xff34313a:0xffe8e5eb;
         getWindow().setStatusBarColor(bg);
         getWindow().setNavigationBarColor(bg);
@@ -79,7 +79,7 @@ public class MainActivity extends Activity {
     private void renderHome(){
         page("Halo, Axey 👋","Kelola ruang kerja terpisah dengan mudah.");
         LinearLayout hero=card();hero.setOrientation(1);
-        TextView mark=label("AW",32,accent,true);mark.setGravity(Gravity.CENTER);mark.setBackground(shape(dark?0xff352027:0xffffe8eb,18));
+        TextView mark=label("AW",32,accent,true);mark.setGravity(Gravity.CENTER);mark.setBackground(shape(dark?0xff14283d:0xffe4f3ff,18));
         LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(dp(64),dp(64));hero.addView(mark,mp);
         hero.addView(label("Axey Work",22,text,true),lp(12));
         hero.addView(label("Work Profile Manager",13,muted,false),lp(3));
@@ -109,7 +109,7 @@ public class MainActivity extends Activity {
         c.addView(col,new LinearLayout.LayoutParams(0,-2,1));
         c.addView(label("›",28,accent,true));
         c.setOnClickListener(v->run.run());
-        if(primary){c.setBackground(shape(dark?0xff382027:0xffffe9ec,20));}
+        if(primary){c.setBackground(shape(dark?0xff14283d:0xffe4f3ff,20));}
         root.addView(c,lp(12));
     }
     private Button button(String title,boolean primary,Runnable action){
