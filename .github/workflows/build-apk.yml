@@ -23,15 +23,29 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Accept Android SDK licenses
-        shell: bash
-        run: yes | /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager --licenses || true
-
-      - name: Install Android 14 SDK platform and build tools
+      - name: Locate preinstalled Android SDK manager
         shell: bash
         run: |
-          /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager --install "platforms;android-34"
-          /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager --install "build-tools;34.0.0"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager 2>/dev/null | head -n 1)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "sdkmanager not found in preinstalled Android SDK"
+            find "$ANDROID_HOME" -maxdepth 5 -type f -name sdkmanager 2>/dev/null || true
+            exit 1
+          fi
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "Using $SDKMANAGER"
+
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: yes | "$SDKMANAGER" --licenses || true
+
+      - name: Install Android 14 SDK platform
+        shell: bash
+        run: "$SDKMANAGER" --install "platforms;android-34"
+
+      - name: Install Android 14 build tools
+        shell: bash
+        run: "$SDKMANAGER" --install "build-tools;34.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
