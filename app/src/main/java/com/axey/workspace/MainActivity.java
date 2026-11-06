@@ -92,7 +92,7 @@ public class MainActivity extends Activity {
         brandText.addView(text("AXEY", 14, Color.WHITE, true));
         brandText.addView(text("WORKSPACE", 11, MUTED, true));
         brand.addView(brandText, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView version = text("1.2.4", 11, BLUE, true);
+        TextView version = text("1.2.5", 11, BLUE, true);
         version.setGravity(Gravity.CENTER);
         version.setPadding(dp(12), dp(7), dp(12), dp(7));
         version.setBackground(shape(PANEL_2, 30, 0));
@@ -221,14 +221,60 @@ public class MainActivity extends Activity {
         for (int i = 0; i < apps.size(); i++) names[i] = String.valueOf(apps.get(i).loadLabel(getPackageManager()));
         new android.app.AlertDialog.Builder(this)
             .setTitle("Aplikasi terpasang (" + apps.size() + ")")
-            .setItems(names, (dialog, which) -> {
-                String pkg = apps.get(which).activityInfo.packageName;
-                Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
-                if (launch != null) {
-                    try { startActivity(launch); }
-                    catch (Exception e) { info("Aplikasi tidak dapat dibuka dari profil ini."); }
-                } else info("Aplikasi ini tidak menyediakan layar utama.");
-            }).setNegativeButton("Tutup", null).show();
+            .setItems(names, (dialog, which) -> showAppActions(apps.get(which)))
+            .setNegativeButton("Tutup", null).show();
+    }
+
+    private void showAppActions(ResolveInfo app) {
+        String pkg = app.activityInfo.packageName;
+        String label = String.valueOf(app.loadLabel(getPackageManager()));
+        boolean owner = dpm != null && dpm.isProfileOwnerApp(getPackageName());
+        boolean hidden = false;
+        if (owner && !pkg.equals(getPackageName())) {
+            try { hidden = dpm.isApplicationHidden(new ComponentName(this, WorkspaceAdminReceiver.class), pkg); }
+            catch (Exception ignored) { }
+        }
+        final boolean isHidden = hidden;
+        String[] actions = owner && !pkg.equals(getPackageName())
+            ? new String[] { "Buka aplikasi", isHidden ? "Tampilkan kembali" : "Sembunyikan dari Work Profile" }
+            : new String[] { "Buka aplikasi" };
+        new android.app.AlertDialog.Builder(this)
+            .setTitle(label)
+            .setItems(actions, (d, choice) -> {
+                if (choice == 0) launchApp(pkg);
+                else setAppHidden(pkg, !isHidden);
+            })
+            .setNegativeButton("Batal", null).show();
+    }
+
+    private void launchApp(String pkg) {
+        Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
+        if (launch != null) {
+            try { startActivity(launch); }
+            catch (Exception e) { info("Aplikasi tidak dapat dibuka dari profil ini."); }
+        } else info("Aplikasi ini tidak menyediakan layar utama.");
+    }
+
+    private void setAppHidden(String pkg, boolean hidden) {
+        if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
+            info("Fitur ini hanya tersedia saat Axey menjadi pengelola Work Profile.");
+            return;
+        }
+        if (pkg.equals(getPackageName())) {
+            info("Axey tidak dapat menyembunyikan dirinya sendiri.");
+            return;
+        }
+        try {
+            boolean changed = dpm.setApplicationHidden(
+                new ComponentName(this, WorkspaceAdminReceiver.class), pkg, hidden);
+            info(changed
+                ? (hidden ? "Aplikasi disembunyikan dari Work Profile." : "Aplikasi ditampilkan kembali di Work Profile.")
+                : "Android tidak mengubah status aplikasi tersebut.");
+        } catch (SecurityException e) {
+            info("Android menolak perubahan ini untuk aplikasi tersebut.");
+        } catch (Exception e) {
+            info("Tidak dapat mengubah visibilitas aplikasi: " + e.getMessage());
+        }
     }
 
     private void deviceInfo(boolean owner) {
