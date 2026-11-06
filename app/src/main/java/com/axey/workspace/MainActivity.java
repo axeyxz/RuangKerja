@@ -340,9 +340,19 @@ public class MainActivity extends Activity {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(18), dp(8), dp(18), 0);
-        TextView note = text("Konfigurasi SOCKS5. Kredensial disimpan lokal pada perangkat. Menyimpan proxy belum mengalihkan trafik aplikasi; mesin VPN/tun2socks perlu diaktifkan pada tahap berikutnya.", 12, MUTED, false);
+        TextView note = text("Pilih protokol proxy dan masukkan detail server. Kredensial disimpan lokal pada perangkat. Pengalihan trafik akan diaktifkan melalui layanan VPN internal Axey pada tahap integrasi berikutnya.", 12, MUTED, false);
         panel.addView(note);
         space(panel, 12);
+        final String[] types = new String[] { "SOCKS5", "HTTP", "HTTPS" };
+        final String[] selectedType = new String[] { type };
+        Button typeButton = secondary("PROTOKOL: " + type + "  ▾");
+        typeButton.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+            .setTitle("Jenis proxy")
+            .setSingleChoiceItems(types, Math.max(0, java.util.Arrays.asList(types).indexOf(selectedType[0])),
+                (d, which) -> { selectedType[0] = types[which]; typeButton.setText("PROTOKOL: " + selectedType[0] + "  ▾"); d.dismiss(); })
+            .setNegativeButton("BATAL", null).show());
+        panel.addView(typeButton, new LinearLayout.LayoutParams(-1, dp(46)));
+        space(panel, 8);
         EditText hostInput = proxyInput("Alamat server / IP", host);
         EditText portInput = proxyInput("Port (contoh: 1080)", port);
         EditText userInput = proxyInput("Username (opsional)", username);
@@ -367,7 +377,7 @@ public class MainActivity extends Activity {
                     info("Isi alamat server dan port yang valid terlebih dahulu.");
                     return;
                 }
-                prefs.edit().putString("type", "SOCKS5").putString("host", h)
+                prefs.edit().putString("type", selectedType[0]).putString("host", h)
                     .putString("port", po).putString("username", u).apply();
                 if (!pw.isEmpty()) {
                     try { prefs.edit().putString("password_enc", encryptProxyPassword(pw)).apply(); }
