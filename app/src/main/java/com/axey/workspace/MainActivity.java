@@ -289,6 +289,7 @@ public class MainActivity extends Activity {
         private final Path path = new Path();
         ToolIconView(String kind) { super(MainActivity.this); this.kind = kind; }
         private void setup(float width) {
+            paint.setShader(null);
             paint.setColor(0xFF27A5FF);
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(width);
@@ -353,6 +354,10 @@ public class MainActivity extends Activity {
                 canvas.restore();
                 postInvalidateOnAnimation();
             } else if ("proxy".equals(kind)) {
+                // Cyan-to-blue gradient keeps the icon family consistently colorful.
+                paint.setShader(new android.graphics.LinearGradient(3,8,33,30,
+                    new int[] { 0xFF25D7FF, 0xFF168BFF, 0xFF625CFF },
+                    null, android.graphics.Shader.TileMode.CLAMP));
                 // Upper arrow travels right; lower arrow travels left.
                 float phase = (SystemClock.uptimeMillis() % 2400L) / 2400f;
                 float travel = (float)Math.sin(phase * Math.PI * 2) * 2.0f;
@@ -402,11 +407,18 @@ public class MainActivity extends Activity {
                 canvas.restore();
                 postInvalidateOnAnimation();
             } else if ("diagnostics".equals(kind)) {
+                paint.setShader(new android.graphics.LinearGradient(5,5,32,32,
+                    new int[] { 0xFF7C6CFF, 0xFF31B8FF, 0xFF40E0C0 },
+                    null, android.graphics.Shader.TileMode.CLAMP));
                 canvas.drawCircle(15,15,9,paint);
                 canvas.drawLine(22,22,32,32,paint);
                 canvas.drawLine(11,15,14,18,paint);
                 canvas.drawLine(14,18,20,11,paint);
             } else {
+                // Warm coral-to-gold help mark, matching the colorful icon treatment.
+                paint.setShader(new android.graphics.LinearGradient(8,5,28,32,
+                    new int[] { 0xFFFF6B9A, 0xFFFF8A55, 0xFFFFC857 },
+                    null, android.graphics.Shader.TileMode.CLAMP));
                 // Handwritten question mark: trace the curve, then draw its dot, then repeat.
                 float phase = (SystemClock.uptimeMillis() % 2400L) / 2400f;
                 Path question = new Path();
