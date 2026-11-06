@@ -204,13 +204,28 @@ public class MainActivity extends Activity {
         pulse.setRepeatCount(ObjectAnimator.INFINITE);
         pulse.setInterpolator(new AccelerateDecelerateInterpolator());
         pulse.setStartDelay(Math.abs(title.hashCode() % 650));
-        pulse.start();
+        ObjectAnimator pulseY = ObjectAnimator.ofFloat(badge, View.SCALE_Y, 1f, 1.07f, 1f);
+        pulseY.setDuration(1900);
+        pulseY.setRepeatCount(ObjectAnimator.INFINITE);
+        pulseY.setInterpolator(new AccelerateDecelerateInterpolator());
+        pulseY.setStartDelay(Math.abs(title.hashCode() % 650));
         ObjectAnimator breathe = ObjectAnimator.ofFloat(badge, View.ALPHA, 0.82f, 1f, 0.82f);
         breathe.setDuration(1900);
         breathe.setRepeatCount(ObjectAnimator.INFINITE);
         breathe.setInterpolator(new AccelerateDecelerateInterpolator());
         breathe.setStartDelay(Math.abs(title.hashCode() % 650));
-        breathe.start();
+        badge.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View view) {
+                pulse.start();
+                pulseY.start();
+                breathe.start();
+            }
+            @Override public void onViewDetachedFromWindow(View view) {
+                pulse.cancel();
+                pulseY.cancel();
+                breathe.cancel();
+            }
+        });
         TextView heading = text(title, 16, Color.WHITE, true);
         heading.setPadding(dp(12), 0, 0, 0);
         top.addView(heading);
