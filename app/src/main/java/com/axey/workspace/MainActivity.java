@@ -342,7 +342,7 @@ public class MainActivity extends Activity {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(18), dp(8), dp(18), 0);
-        TextView note = text("Pilih protokol proxy dan masukkan detail server. Kredensial disimpan lokal pada perangkat. Pengalihan trafik akan diaktifkan melalui layanan VPN internal Axey pada tahap integrasi berikutnya.", 12, MUTED, false);
+        TextView note = text("Axey saat ini mendukung SOCKS5 melalui layanan VPN internal. Masukkan detail server; HTTP dan HTTPS belum didukung. Kredensial disimpan lokal pada perangkat.", 12, MUTED, false);
         panel.addView(note);
         space(panel, 12);
         final String[] types = new String[] { "SOCKS5", "HTTP", "HTTPS" };
@@ -380,15 +380,18 @@ public class MainActivity extends Activity {
                     info("Isi alamat server dan port yang valid terlebih dahulu.");
                     return;
                 }
+                if (!"SOCKS5".equals(selectedType[0])) {
+                    info("Layanan VPN Axey saat ini hanya mendukung SOCKS5. Pilih SOCKS5 untuk melanjutkan.");
+                    return;
+                }
                 prefs.edit().putString("type", selectedType[0]).putString("host", h)
                     .putString("port", po).putString("username", u).apply();
                 if (!pw.isEmpty()) {
                     try { prefs.edit().putString("password_enc", encryptProxyPassword(pw)).apply(); }
                     catch (Exception e) { info("Password tidak dapat diamankan oleh Android Keystore."); return; }
                 }
-                Toast.makeText(this, "Konfigurasi proxy tersimpan", Toast.LENGTH_SHORT).show();
-                info("Proxy tersimpan: " + h + ":" + po +
-                    "\nJenis: SOCKS5\n\nStatus: belum tersambung. Pengalihan trafik VPN belum aktif.");
+                Toast.makeText(this, "Konfigurasi SOCKS5 tersimpan", Toast.LENGTH_SHORT).show();
+                startProxyVpn();
             })
             .setNegativeButton("BATAL", null)
             .create();
