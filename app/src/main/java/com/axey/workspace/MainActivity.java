@@ -255,56 +255,7 @@ public class MainActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
         ToolIconView badge = new ToolIconView(icon);
-        badge.setBackgroundColor(Color.TRANSPARENT);
         top.addView(badge, new LinearLayout.LayoutParams(dp(42), dp(42)));
-        ObjectAnimator motion;
-        ObjectAnimator motionY = null;
-        if ("settings".equals(icon)) {
-            // Keep the tile steady; rotate only the colored gear drawn inside it.
-            motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 1f, 0.94f, 1f);
-            motion.setDuration(2400);
-            motion.setInterpolator(new AccelerateDecelerateInterpolator());
-        } else if ("proxy".equals(icon)) {
-            // The arrows animate independently inside the icon, following their own directions.
-            motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 1f, 0.96f, 1f);
-            motion.setDuration(2400);
-            motion.setInterpolator(new AccelerateDecelerateInterpolator());
-        } else if ("diagnostics".equals(icon)) {
-            motion = ObjectAnimator.ofFloat(badge, View.SCALE_X, 1f, 1.09f, 1f);
-            motionY = ObjectAnimator.ofFloat(badge, View.SCALE_Y, 1f, 1.09f, 1f);
-            motion.setDuration(2400);
-            motionY.setDuration(2400);
-            motion.setInterpolator(new AccelerateDecelerateInterpolator());
-            motionY.setInterpolator(new AccelerateDecelerateInterpolator());
-        } else if ("apps".equals(icon)) {
-            motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 0.88f, 1f, 0.88f);
-            motion.setDuration(2400);
-            motion.setInterpolator(new AccelerateDecelerateInterpolator());
-        } else {
-            // Help icon draws its question mark stroke-by-stroke in its own 2.4s loop.
-            motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 1f, 1f);
-            motion.setDuration(2400);
-            motion.setInterpolator(new AccelerateDecelerateInterpolator());
-        }
-        motion.setRepeatCount(ObjectAnimator.INFINITE);
-        if (motionY != null) motionY.setRepeatCount(ObjectAnimator.INFINITE);
-        motion.setStartDelay(Math.abs(title.hashCode() % 400));
-        final ObjectAnimator extraMotion = motionY;
-        badge.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-            @Override public void onViewAttachedToWindow(View view) {
-                motion.start();
-                if (extraMotion != null) extraMotion.start();
-            }
-            @Override public void onViewDetachedFromWindow(View view) {
-                motion.cancel();
-                if (extraMotion != null) extraMotion.cancel();
-                badge.setRotation(0f);
-                badge.setScaleX(1f);
-                badge.setScaleY(1f);
-                badge.setTranslationX(0f);
-                badge.setAlpha(1f);
-            }
-        });
         TextView heading = text(title, 16, TEXT, true);
         heading.setPadding(dp(12), 0, 0, 0);
         top.addView(heading);
@@ -364,164 +315,60 @@ public class MainActivity extends Activity {
         }
     }
 
+    // Static, consistent blue line icons. No cycling brand marks or distracting motion.
     private class ToolIconView extends View {
         private final String kind;
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Path path = new Path();
+        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         ToolIconView(String kind) { super(MainActivity.this); this.kind = kind; }
-        private void setup(float width) {
-            paint.setShader(null);
-            paint.setColor(0xFF27A5FF);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(width);
-            paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setStrokeJoin(Paint.Join.ROUND);
+        private void line(Canvas c, float... xy) {
+            Path path = new Path();
+            path.moveTo(xy[0], xy[1]);
+            for (int i = 2; i < xy.length; i += 2) path.lineTo(xy[i], xy[i + 1]);
+            c.drawPath(path, p);
         }
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             float scale = Math.min(getWidth(), getHeight()) / 42f;
             canvas.save();
-            canvas.translate((getWidth()-36*scale)/2f,(getHeight()-36*scale)/2f);
-            canvas.scale(scale,scale);
-            setup(2.4f);
+            canvas.translate((getWidth() - 36 * scale) / 2f, (getHeight() - 36 * scale) / 2f);
+            canvas.scale(scale, scale);
+            p.setShader(null);
+            p.setColor(0xFF35A9FF);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(2.2f);
+            p.setStrokeCap(Paint.Cap.ROUND);
+            p.setStrokeJoin(Paint.Join.ROUND);
             if ("apps".equals(kind)) {
-                // Brand-colored social app tiles; each white mark scales in on its own turn.
-                long elapsed = SystemClock.uptimeMillis();
-                int index = (int)((elapsed / 2400L) % 4L);
-                float phase = (elapsed % 2400L) / 2400f;
-                float zoom = 0.78f + 0.22f * (float)Math.sin(phase * Math.PI);
-                canvas.save();
-                canvas.translate(18,18);
-                canvas.scale(zoom,zoom);
-                canvas.translate(-18,-18);
-                paint.setStyle(Paint.Style.FILL);
-                paint.setShader(null);
-                int tile = index == 0 ? 0xFF1877F2 : index == 1 ? 0xFF090909 :
-                    index == 2 ? 0xFFE1306C : 0xFF25D366;
-                paint.setColor(tile);
-                canvas.drawRoundRect(3,3,33,33,9,9,paint);
-                paint.setColor(Color.WHITE);
-                if (index == 0) {
-                    paint.setTypeface(Typeface.create("sans-serif-black",Typeface.BOLD));
-                    paint.setTextSize(28);
-                    canvas.drawText("f",12,29,paint);
-                } else if (index == 1) {
-                    paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(3.3f);
-                    paint.setStrokeCap(Paint.Cap.SQUARE);
-                    canvas.drawLine(10,10,26,26,paint);
-                    canvas.drawLine(26,10,10,26,paint);
-                } else if (index == 2) {
-                    paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(2.4f);
-                    canvas.drawRoundRect(8,8,28,28,6,6,paint);
-                    canvas.drawCircle(18,18,4.5f,paint);
-                    paint.setStyle(Paint.Style.FILL);
-                    canvas.drawCircle(25,11,1.5f,paint);
-                } else {
-                    paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(2.1f);
-                    canvas.drawCircle(18,17,10.5f,paint);
-                    path.reset();
-                    path.moveTo(10,25); path.lineTo(7,30); path.lineTo(16,27);
-                    canvas.drawPath(path,paint);
-                    paint.setStrokeWidth(2.8f);
-                    paint.setStrokeCap(Paint.Cap.ROUND);
-                    path.reset();
-                    path.moveTo(14,11); path.quadTo(11,14,16,20);
-                    path.quadTo(21,25,25,20);
-                    canvas.drawPath(path,paint);
-                }
-                canvas.restore();
-                postInvalidateOnAnimation();
+                canvas.drawRoundRect(4,4,16,16,3,3,p);
+                canvas.drawRoundRect(21,4,33,16,3,3,p);
+                canvas.drawRoundRect(4,21,16,33,3,3,p);
+                canvas.drawRoundRect(21,21,33,33,3,3,p);
             } else if ("proxy".equals(kind)) {
-                // Cyan-to-blue gradient keeps the icon family consistently colorful.
-                paint.setShader(new android.graphics.LinearGradient(3,8,33,30,
-                    new int[] { 0xFF25D7FF, 0xFF168BFF, 0xFF625CFF },
-                    null, android.graphics.Shader.TileMode.CLAMP));
-                // Upper arrow travels right; lower arrow travels left.
-                float phase = (SystemClock.uptimeMillis() % 2400L) / 2400f;
-                float travel = (float)Math.sin(phase * Math.PI * 2) * 2.0f;
-                canvas.save();
-                canvas.translate(travel, 0);
-                path.reset();
-                path.moveTo(4,12); path.lineTo(30,12);
-                path.moveTo(24,6); path.lineTo(30,12); path.lineTo(24,18);
-                canvas.drawPath(path,paint);
-                canvas.restore();
-                canvas.save();
-                canvas.translate(-travel, 0);
-                path.reset();
-                path.moveTo(32,25); path.lineTo(6,25);
-                path.moveTo(12,19); path.lineTo(6,25); path.lineTo(12,31);
-                canvas.drawPath(path,paint);
-                canvas.restore();
-                postInvalidateOnAnimation();
+                line(canvas,4,12,30,12,24,6);
+                line(canvas,30,12,24,18);
+                line(canvas,32,25,6,25,12,19);
+                line(canvas,6,25,12,31);
             } else if ("settings".equals(kind)) {
-                // Premium blue-violet gear rotates inside a steady dark tile.
-                float phase = (SystemClock.uptimeMillis() % 2400L) / 2400f;
-                canvas.save();
-                canvas.translate(18,18);
-                canvas.rotate(phase * 360f);
-                canvas.translate(-18,-18);
-                paint.setStyle(Paint.Style.FILL);
-                paint.setShader(new android.graphics.LinearGradient(5,5,31,31,
-                    new int[] { 0xFF25B8FF, 0xFF386BFF, 0xFF8A5CFF },
-                    null, android.graphics.Shader.TileMode.CLAMP));
-                path.reset();
-                for (int i=0;i<24;i++) {
-                    double angle = Math.PI * 2d * i / 24d - Math.PI/2d;
-                    float radius = (i % 3 == 0 || i % 3 == 1) ? 14f : 11f;
-                    float x = 18f + (float)Math.cos(angle) * radius;
-                    float y = 18f + (float)Math.sin(angle) * radius;
-                    if (i == 0) path.moveTo(x,y); else path.lineTo(x,y);
+                canvas.drawCircle(18,18,7,p);
+                for (int i=0;i<8;i++) {
+                    double angle=Math.PI*i/4d;
+                    float x1=18+(float)Math.cos(angle)*10;
+                    float y1=18+(float)Math.sin(angle)*10;
+                    float x2=18+(float)Math.cos(angle)*14;
+                    float y2=18+(float)Math.sin(angle)*14;
+                    line(canvas,x1,y1,x2,y2);
                 }
-                path.close();
-                canvas.drawPath(path,paint);
-                paint.setShader(null);
-                paint.setColor(BG);
-                canvas.drawCircle(18,18,6.2f,paint);
-                paint.setColor(Color.WHITE);
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(1.8f);
-                canvas.drawCircle(18,18,3.1f,paint);
-                canvas.restore();
-                postInvalidateOnAnimation();
             } else if ("diagnostics".equals(kind)) {
-                paint.setShader(new android.graphics.LinearGradient(5,5,32,32,
-                    new int[] { 0xFF7C6CFF, 0xFF31B8FF, 0xFF40E0C0 },
-                    null, android.graphics.Shader.TileMode.CLAMP));
-                canvas.drawCircle(15,15,9,paint);
-                canvas.drawLine(22,22,32,32,paint);
-                canvas.drawLine(11,15,14,18,paint);
-                canvas.drawLine(14,18,20,11,paint);
+                canvas.drawCircle(14,14,9,p);
+                line(canvas,21,21,32,32);
+                line(canvas,10,14,13,17,19,10);
             } else {
-                // Warm coral-to-gold help mark, matching the colorful icon treatment.
-                paint.setShader(new android.graphics.LinearGradient(8,5,28,32,
-                    new int[] { 0xFFFF6B9A, 0xFFFF8A55, 0xFFFFC857 },
-                    null, android.graphics.Shader.TileMode.CLAMP));
-                // Handwritten question mark: trace the curve, then draw its dot, then repeat.
-                float phase = (SystemClock.uptimeMillis() % 2400L) / 2400f;
-                Path question = new Path();
-                question.moveTo(10f,11f);
-                question.cubicTo(10f,3f,27f,3f,27f,12f);
-                question.cubicTo(27f,18f,18f,18f,18f,24f);
-                PathMeasure measure = new PathMeasure(question, false);
-                float length = measure.getLength();
-                float drawLength = length * Math.min(1f, phase / 0.78f);
-                Path partial = new Path();
-                measure.getSegment(0f, drawLength, partial, true);
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(2.8f);
-                paint.setStrokeCap(Paint.Cap.ROUND);
-                paint.setStrokeJoin(Paint.Join.ROUND);
-                canvas.drawPath(partial, paint);
-                if (phase > 0.78f) {
-                    float dotProgress = Math.min(1f, (phase - 0.78f) / 0.12f);
-                    paint.setStyle(Paint.Style.FILL);
-                    canvas.drawCircle(18f, 31f, 1.8f * dotProgress, paint);
-                }
-                postInvalidateOnAnimation();
+                canvas.drawCircle(18,18,14,p);
+                p.setTextAlign(Paint.Align.CENTER);
+                p.setTextSize(21);
+                p.setStyle(Paint.Style.FILL);
+                p.setTypeface(Typeface.DEFAULT_BOLD);
+                canvas.drawText("?",18,25,p);
             }
             canvas.restore();
         }
@@ -935,7 +782,6 @@ public class MainActivity extends Activity {
                 "Kelola aplikasi Workspace",
                 "Bersihkan cache AXEY",
                 "Diagnostik perangkat",
-                "Hapus seluruh Work Profile",
                 "Hapus data AXEY"
             }
             : new String[] {
@@ -957,8 +803,7 @@ public class MainActivity extends Activity {
                     else if (which == 5) showApps();
                     else if (which == 6) clearAxeyCache();
                     else if (which == 7) deviceInfo(true);
-                    else if (which == 8) confirmWipeWorkProfile();
-                    else if (which == 9) confirmResetAxeyData();
+                    else if (which == 8) confirmResetAxeyData();
                 } else {
                     if (which == 0) provision();
                     else if (which == 1) deviceInfo(false);
@@ -967,33 +812,6 @@ public class MainActivity extends Activity {
                 }
             })
             .setNegativeButton("TUTUP", null)
-            .show();
-    }
-
-    private void confirmWipeWorkProfile() {
-        if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
-            info("Axey bukan Profile Owner. Penghapusan Work Profile harus dilakukan melalui Pengaturan Android.");
-            return;
-        }
-        new android.app.AlertDialog.Builder(this)
-            .setTitle("Hapus seluruh Work Profile?")
-            .setMessage("PERINGATAN: semua aplikasi, akun, file, dan data di dalam Work Profile akan dihapus permanen oleh Android. Data di profil pribadi tidak termasuk. Tindakan ini tidak dapat dibatalkan. Pastikan data kerja sudah dicadangkan.")
-            .setNegativeButton("BATAL", null)
-            .setPositiveButton("LANJUTKAN", (dialog, which) ->
-                new android.app.AlertDialog.Builder(this)
-                    .setTitle("Konfirmasi terakhir")
-                    .setMessage("Ketik persetujuan dengan menekan tombol HAPUS PROFIL. Android akan menghapus seluruh ruang kerja Axey.")
-                    .setNegativeButton("BATAL", null)
-                    .setPositiveButton("HAPUS PROFIL", (d, w) -> {
-                        try {
-                            dpm.wipeData(0);
-                        } catch (SecurityException e) {
-                            info("Android menolak penghapusan profil. Hapus Work Profile melalui Pengaturan Android.");
-                        } catch (Exception e) {
-                            info("Work Profile tidak dapat dihapus: " +
-                                (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
-                        }
-                    }).show())
             .show();
     }
 
@@ -1093,8 +911,7 @@ public class MainActivity extends Activity {
             if (intent.resolveActivity(getPackageManager()) != null) {
                 startActivity(intent);
             } else {
-                Intent fallback = new Intent(android.provider.Settings.ACTION_SYNC_SETTINGS);
-                startActivity(fallback);
+                info("Halaman khusus Work Profile tidak disediakan oleh ROM ini. Buka Pengaturan Android > Akun untuk melihat status profil kerja. Axey tidak akan mengarahkan ke halaman sinkronisasi umum.");
             }
         } catch (Exception e) {
             info("Halaman pengaturan Work Profile tidak tersedia pada ROM ini. Gunakan Pengaturan Android > Akun > Work Profile.");
