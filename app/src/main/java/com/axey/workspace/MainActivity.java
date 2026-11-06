@@ -241,8 +241,19 @@ public class MainActivity extends Activity {
         new android.app.AlertDialog.Builder(this)
             .setTitle(label)
             .setItems(actions, (d, choice) -> {
-                if (choice == 0) launchApp(pkg);
-                else setAppHidden(pkg, !isHidden);
+                if (choice == 0) {
+                    launchApp(pkg);
+                } else {
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle(isHidden ? "Tampilkan aplikasi?" : "Sembunyikan aplikasi?")
+                        .setMessage(isHidden
+                            ? "Aplikasi akan ditampilkan kembali di Work Profile."
+                            : "Aplikasi tidak akan terlihat atau dapat dibuka oleh pengguna Work Profile sampai ditampilkan kembali.")
+                        .setNegativeButton("Batal", null)
+                        .setPositiveButton(isHidden ? "Tampilkan" : "Sembunyikan",
+                            (confirm, which) -> setAppHidden(pkg, !isHidden))
+                        .show();
+                }
             })
             .setNegativeButton("Batal", null).show();
     }
