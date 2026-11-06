@@ -919,8 +919,7 @@ public class MainActivity extends Activity {
         boolean owner = dpm != null && dpm.isProfileOwnerApp(getPackageName());
         String profileName = "Belum tersedia";
         if (owner) {
-            try { profileName = dpm.getProfileName(new ComponentName(this, WorkspaceAdminReceiver.class)); }
-            catch (Exception ignored) { profileName = "Axey Workspace"; }
+            profileName = getPreferences(MODE_PRIVATE).getString("work_profile_name", "Axey Workspace");
         }
         String summary = owner
             ? "STATUS: AKTIF\nNama profil: " + (profileName == null ? "Work Profile" : profileName) +
@@ -1004,10 +1003,7 @@ public class MainActivity extends Activity {
             return;
         }
         String current = "Axey Workspace";
-        try {
-            String stored = dpm.getProfileName(new ComponentName(this, WorkspaceAdminReceiver.class));
-            if (stored != null && !stored.trim().isEmpty()) current = stored;
-        } catch (Exception ignored) { }
+        current = getPreferences(MODE_PRIVATE).getString("work_profile_name", "Axey Workspace");
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(18), dp(8), dp(18), 0);
@@ -1029,6 +1025,7 @@ public class MainActivity extends Activity {
                 }
                 try {
                     dpm.setProfileName(new ComponentName(this, WorkspaceAdminReceiver.class), name);
+                    getPreferences(MODE_PRIVATE).edit().putString("work_profile_name", name).apply();
                     info("Nama Work Profile berhasil diperbarui menjadi: " + name);
                     showProfileSettingsMenu();
                 } catch (SecurityException e) {
