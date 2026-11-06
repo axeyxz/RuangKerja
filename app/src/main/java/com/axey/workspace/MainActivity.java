@@ -364,8 +364,22 @@ public class MainActivity extends Activity {
                     line(canvas,x1,y1,x2,y2);
                 }
             } else if ("update".equals(kind)) {
-                canvas.drawArc(6,6,30,30,45,275,false,p);
-                line(canvas,26,5,31,6,30,12);
+                p.setStyle(Paint.Style.FILL);
+                p.setColor(0xFF2878E8);
+                canvas.drawRoundRect(3,3,33,33,7,7,p);
+                p.setColor(Color.WHITE);
+                canvas.drawRoundRect(16,7,20,23,2,2,p);
+                Path arrow = new Path();
+                arrow.moveTo(18,5);
+                arrow.lineTo(10,14);
+                arrow.lineTo(14,14);
+                arrow.lineTo(14,19);
+                arrow.lineTo(22,19);
+                arrow.lineTo(22,14);
+                arrow.lineTo(26,14);
+                arrow.close();
+                canvas.drawPath(arrow,p);
+                canvas.drawRoundRect(9,24,27,28,2,2,p);
             } else if ("diagnostics".equals(kind)) {
                 canvas.drawCircle(14,14,9,p);
                 line(canvas,21,21,32,32);
