@@ -14,6 +14,8 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -94,7 +96,7 @@ public class MainActivity extends Activity {
         brandText.addView(text("AXEY", 14, Color.WHITE, true));
         brandText.addView(text("WORKSPACE", 11, MUTED, true));
         brand.addView(brandText, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView version = text("1.2.5", 11, BLUE, true);
+        TextView version = text("1.2.6", 11, BLUE, true);
         version.setGravity(Gravity.CENTER);
         version.setPadding(dp(12), dp(7), dp(12), dp(7));
         version.setBackground(shape(PANEL_2, 30, 0));
@@ -135,6 +137,8 @@ public class MainActivity extends Activity {
         section("WORKSPACE TOOLS");
         addTool("▦", "App manager", "Lihat dan buka aplikasi pada ruang Android ini.",
             "BUKA DAFTAR APLIKASI", v -> showApps());
+        addTool("⌁", "Proxy manager", "Simpan konfigurasi proxy SOCKS5 untuk tahap pengalihan trafik VPN.",
+            "ATUR PROXY", v -> showProxyManager());
         addTool("⚙", "Profile settings", "Buka pengaturan aplikasi Android.",
             "BUKA PENGATURAN", v -> openSettings("android.settings.MANAGE_APPLICATIONS_SETTINGS"));
         addTool("⌁", "Device diagnostics", "Periksa versi Android dan kesiapan Work Profile.",
@@ -324,6 +328,100 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             info("Tidak dapat mengubah visibilitas aplikasi: " + e.getMessage());
         }
+    }
+
+
+    private void showProxyManager() {
+        android.content.SharedPreferences prefs = getSharedPreferences("axey_proxy", MODE_PRIVATE);
+        String type = prefs.getString("type", "SOCKS5");
+        String host = prefs.getString("host", "");
+        String port = prefs.getString("port", "1080");
+        String username = prefs.getString("username", "");
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(18), dp(8), dp(18), 0);
+        TextView note = text("Konfigurasi SOCKS5. Kredensial disimpan lokal pada perangkat. Menyimpan proxy belum mengalihkan trafik aplikasi; mesin VPN/tun2socks perlu diaktifkan pada tahap berikutnya.", 12, MUTED, false);
+        panel.addView(note);
+        space(panel, 12);
+        EditText hostInput = proxyInput("Alamat server / IP", host);
+        EditText portInput = proxyInput("Port (contoh: 1080)", port);
+        EditText userInput = proxyInput("Username (opsional)", username);
+        EditText passInput = proxyInput("Password (opsional)", "");
+        passInput.setInputType(129);
+        panel.addView(hostInput);
+        panel.addView(portInput);
+        panel.addView(userInput);
+        panel.addView(passInput);
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Proxy Manager")
+            .setView(panel)
+            .setPositiveButton("SIMPAN", (dialog, which) -> {
+                String h = hostInput.getText().toString().trim();
+                String po = portInput.getText().toString().trim();
+                String u = userInput.getText().toString();
+                String pw = passInput.getText().toString();
+                int portNumber;
+                try { portNumber = Integer.parseInt(po); }
+                catch (Exception e) { info("Port harus berupa angka antara 1 sampai 65535."); return; }
+                if (h.isEmpty() || portNumber < 1 || portNumber > 65535) {
+                    info("Isi alamat server dan port yang valid terlebih dahulu.");
+                    return;
+                }
+                prefs.edit().putString("type", "SOCKS5").putString("host", h)
+                    .putString("port", po).putString("username", u).apply();
+                if (!pw.isEmpty()) {
+                    try { prefs.edit().putString("password_enc", encryptProxyPassword(pw)).apply(); }
+                    catch (Exception e) { info("Password tidak dapat diamankan oleh Android Keystore."); return; }
+                }
+                Toast.makeText(this, "Konfigurasi proxy tersimpan", Toast.LENGTH_SHORT).show();
+                info("Proxy tersimpan: " + h + ":" + po +
+                    "\nJenis: SOCKS5\n\nStatus: belum tersambung. Pengalihan trafik VPN belum aktif.");
+            })
+            .setNegativeButton("BATAL", null)
+            .show();
+    }
+
+    private EditText proxyInput(String hint, String value) {
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setText(value);
+        input.setHint(hint);
+        input.setTextColor(Color.WHITE);
+        input.setHintTextColor(MUTED);
+        input.setPadding(dp(12), dp(8), dp(12), dp(8));
+        input.setBackground(shape(PANEL_2, 12, 0xFF24466A));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(48));
+        lp.bottomMargin = dp(8);
+        input.setLayoutParams(lp);
+        return input;
+    }
+
+    private String encryptProxyPassword(String password) throws Exception {
+        java.security.KeyStore keyStore = java.security.KeyStore.getInstance("AndroidKeyStore");
+        keyStore.load(null);
+        String alias = "AxeyProxyKey";
+        javax.crypto.SecretKey key;
+        if (keyStore.containsAlias(alias)) {
+            key = (javax.crypto.SecretKey) keyStore.getKey(alias, null);
+        } else {
+            javax.crypto.KeyGenerator generator = javax.crypto.KeyGenerator.getInstance(
+                android.security.keystore.KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+            generator.init(new android.security.keystore.KeyGenParameterSpec.Builder(alias,
+                android.security.keystore.KeyProperties.PURPOSE_ENCRYPT |
+                android.security.keystore.KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(android.security.keystore.KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(android.security.keystore.KeyProperties.ENCRYPTION_PADDING_NONE)
+                .build());
+            key = generator.generateKey();
+        }
+        javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, key);
+        byte[] encrypted = cipher.doFinal(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        byte[] iv = cipher.getIV();
+        byte[] combined = new byte[iv.length + encrypted.length];
+        System.arraycopy(iv, 0, combined, 0, iv.length);
+        System.arraycopy(encrypted, 0, combined, iv.length, encrypted.length);
+        return android.util.Base64.encodeToString(combined, android.util.Base64.NO_WRAP);
     }
 
     private void deviceInfo(boolean owner) {
