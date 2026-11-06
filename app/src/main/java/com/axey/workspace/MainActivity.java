@@ -256,7 +256,7 @@ public class MainActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
         ToolIconView badge = new ToolIconView(icon);
-        badge.setBackground(shape(PANEL_2, 12, 0));
+        badge.setBackgroundColor(Color.TRANSPARENT);
         top.addView(badge, new LinearLayout.LayoutParams(dp(42), dp(42)));
         ObjectAnimator motion;
         ObjectAnimator motionY = null;
