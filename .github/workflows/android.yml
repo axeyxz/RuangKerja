@@ -50,7 +50,13 @@ jobs:
           test -n "$ALIAS" || (echo "Missing AXEY_KEY_ALIAS secret"; exit 1)
           test -n "$STOREPASS" || (echo "Missing AXEY_KEYSTORE_PASSWORD secret"; exit 1)
           test -n "$KEYPASS" || (echo "Missing AXEY_KEY_PASSWORD secret"; exit 1)
-          echo "$AKEY" | base64 --decode > "$RUNNER_TEMP/axey-upload-key.jks"
+          # Remove whitespace introduced by copying a multiline Base64 value into GitHub Secrets.
+          AKEY_CLEAN="$(printf '%s' "$AKEY" | tr -d '[:space:]')"
+          if ! printf '%s' "$AKEY_CLEAN" | base64 --decode > "$RUNNER_TEMP/axey-upload-key.jks"; then
+            echo "::error::AXEY_KEYSTORE_BASE64 is not valid Base64. Re-copy the complete contents of KEYSTORE-BASE64.txt into this secret."
+            exit 1
+          fi
+          test -s "$RUNNER_TEMP/axey-upload-key.jks" || (echo "::error::Decoded keystore is empty"; exit 1)
           keytool -list -keystore "$RUNNER_TEMP/axey-upload-key.jks" -storepass "$STOREPASS" -alias "$ALIAS"
           echo "AXEY_KEYSTORE_PATH=$RUNNER_TEMP/axey-upload-key.jks" >> "$GITHUB_ENV"
           echo "AXEY_KEY_ALIAS=$ALIAS" >> "$GITHUB_ENV"
