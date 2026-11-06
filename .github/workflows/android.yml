@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -39,11 +39,36 @@ jobs:
           /usr/local/lib/android/sdk/ndk/29.0.14206865/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk NDK_APPLICATION_MK=Application.mk APP_ABI=arm64-v8a APP_CFLAGS='-DPKGNAME=com/axey/workspace -DCLSNAME=ProxyVpnService'
           mkdir -p "$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a"
           cp libs/arm64-v8a/libhev-socks5-tunnel.so "$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a/"
-      - name: Build debug APK
-        run: gradle --no-daemon assembleDebug
-      - name: Upload APK
+      - name: Decode permanent signing key
+        env:
+          AKEY: ${{ secrets.AXEY_KEYSTORE_BASE64 }}
+          ALIAS: ${{ secrets.AXEY_KEY_ALIAS }}
+          STOREPASS: ${{ secrets.AXEY_KEYSTORE_PASSWORD }}
+          KEYPASS: ${{ secrets.AXEY_KEY_PASSWORD }}
+        run: |
+          test -n "$AKEY" || (echo "Missing AKEYSTORE secret"; exit 1)
+          test -n "$ALIAS" || (echo "Missing AXEY_KEY_ALIAS secret"; exit 1)
+          test -n "$STOREPASS" || (echo "Missing AXEY_KEYSTORE_PASSWORD secret"; exit 1)
+          test -n "$KEYPASS" || (echo "Missing AXEY_KEY_PASSWORD secret"; exit 1)
+          echo "$AKEY" | base64 --decode > "$RUNNER_TEMP/axey-upload-key.jks"
+          keytool -list -keystore "$RUNNER_TEMP/axey-upload-key.jks" -storepass "$STOREPASS" -alias "$ALIAS"
+          echo "AXEY_KEYSTORE_PATH=$RUNNER_TEMP/axey-upload-key.jks" >> "$GITHUB_ENV"
+          echo "AXEY_KEY_ALIAS=$ALIAS" >> "$GITHUB_ENV"
+          echo "AXEY_KEYSTORE_PASSWORD=$STOREPASS" >> "$GITHUB_ENV"
+          echo "AXEY_KEY_PASSWORD=$KEYPASS" >> "$GITHUB_ENV"
+      - name: Build signed release APK
+        run: gradle --no-daemon assembleRelease
+      - name: Verify APK signature
+        run: /usr/local/lib/android/sdk/build-tools/35.0.0/apksigner verify --verbose app/build/outputs/apk/release/app-release.apk
+      - name: Publish direct APK release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete v1.2.7 --yes || true
+          gh release create v1.2.7 app/build/outputs/apk/release/app-release.apk --title "Axey Workspace 1.2.7" --notes "First permanent signed Axey Workspace release. Install this version once; future versions will use the same signing key."
+      - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Axey-Workspace-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: Axey-Workspace-1.2.7-signed
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
