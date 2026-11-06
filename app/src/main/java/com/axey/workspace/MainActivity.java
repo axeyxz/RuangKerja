@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
+import android.net.VpnService;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -25,7 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity {\n    private static final int VPN_REQUEST_CODE = 7401;
     private static final int BG = Color.rgb(5, 10, 20);
     private static final int PANEL = Color.rgb(14, 25, 43);
     private static final int PANEL_2 = Color.rgb(19, 37, 61);
@@ -421,6 +422,36 @@ public class MainActivity extends Activity {
                 }).start();
             }));
         proxyDialog.show();
+    }
+
+
+    private void startProxyVpn() {
+        Intent permission = VpnService.prepare(this);
+        if (permission != null) {
+            startActivityForResult(permission, VPN_REQUEST_CODE);
+        } else {
+            launchProxyService();
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == VPN_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) launchProxyService();
+            else info("Izin VPN tidak diberikan. Proxy belum tersambung.");
+        }
+    }
+
+    private void launchProxyService() {
+        Intent service = new Intent(this, ProxyVpnService.class);
+        service.setAction(ProxyVpnService.ACTION_START);
+        try {
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(service);
+            else startService(service);
+            info("Permintaan koneksi VPN dikirim. Periksa notifikasi Axey Proxy. Setelah tersambung, uji IP dari aplikasi di Work Profile.");
+        } catch (Exception e) {
+            info("Axey tidak dapat memulai layanan VPN: " + e.getMessage());
+        }
     }
 
     private EditText proxyInput(String hint, String value) {
