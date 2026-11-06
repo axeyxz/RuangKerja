@@ -1,6 +1,8 @@
 package com.axey.workspace;
 
 import android.app.Activity;
+import android.animation.ObjectAnimator;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -139,13 +141,13 @@ public class MainActivity extends Activity {
         section("WORKSPACE TOOLS");
         addTool("▦", "App manager", "Lihat dan buka aplikasi pada ruang Android ini.",
             "BUKA DAFTAR APLIKASI", v -> showApps());
-        addTool("⌁", "Proxy manager", "Simpan konfigurasi proxy SOCKS5 untuk tahap pengalihan trafik VPN.",
+        addTool("⇄", "Proxy manager", "Simpan konfigurasi proxy SOCKS5 untuk tahap pengalihan trafik VPN.",
             "ATUR PROXY", v -> showProxyManager());
         addTool("⚙", "Profile settings", "Buka pengaturan aplikasi Android.",
             "BUKA PENGATURAN", v -> openSettings("android.settings.MANAGE_APPLICATIONS_SETTINGS"));
-        addTool("⌁", "Device diagnostics", "Periksa versi Android dan kesiapan Work Profile.",
+        addTool("⌖", "Device diagnostics", "Periksa versi Android dan kesiapan Work Profile.",
             "LIHAT DIAGNOSTIK", v -> deviceInfo(owner));
-        addTool("盾", "Help & safety", "Ketahui batasan dan cara kerja profil terkelola.",
+        addTool("◇", "Help & safety", "Ketahui batasan dan cara kerja profil terkelola.",
             "BACA INFORMASI", v -> info("Work Profile adalah fitur Android. Axey tidak membuat mesin virtual dan tidak dapat melewati pembatasan sistem. Ketersediaan pembuatan profil ditentukan oleh perangkat dan kebijakan Android."));
         space(root, 18);
         TextView footer = text("AXEY WORKSPACE  •  BUILT FOR ANDROID", 10, 0xFF657B98, true);
@@ -196,6 +198,19 @@ public class MainActivity extends Activity {
         badge.setGravity(Gravity.CENTER);
         badge.setBackground(shape(PANEL_2, 12, 0));
         top.addView(badge, new LinearLayout.LayoutParams(dp(42), dp(42)));
+        // Gentle repeating pulse gives each tool icon a little life without distracting.
+        ObjectAnimator pulse = ObjectAnimator.ofFloat(badge, View.SCALE_X, 1f, 1.07f, 1f);
+        pulse.setDuration(1900);
+        pulse.setRepeatCount(ObjectAnimator.INFINITE);
+        pulse.setInterpolator(new AccelerateDecelerateInterpolator());
+        pulse.setStartDelay(Math.abs(title.hashCode() % 650));
+        pulse.start();
+        ObjectAnimator breathe = ObjectAnimator.ofFloat(badge, View.ALPHA, 0.82f, 1f, 0.82f);
+        breathe.setDuration(1900);
+        breathe.setRepeatCount(ObjectAnimator.INFINITE);
+        breathe.setInterpolator(new AccelerateDecelerateInterpolator());
+        breathe.setStartDelay(Math.abs(title.hashCode() % 650));
+        breathe.start();
         TextView heading = text(title, 16, Color.WHITE, true);
         heading.setPadding(dp(12), 0, 0, 0);
         top.addView(heading);
