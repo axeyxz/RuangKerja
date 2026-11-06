@@ -27,6 +27,11 @@ public class MainActivity extends Activity {
         render();
     }
 
+    @Override protected void onResume() {
+        super.onResume();
+        if (dpm != null) render();
+    }
+
     private GradientDrawable shape(int color, int radius) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(color); d.setCornerRadius(radius); return d;
@@ -47,7 +52,7 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL); root.setPadding(24, 34, 24, 28);
         scroll.addView(root);
         root.addView(label("AXEY  /  WORKSPACE", 13, blue, true));
-        root.addView(label("Your work.\nYour space.", 34, Color.WHITE, true));
+        root.addView(label("Your work.\\nYour space.", 34, Color.WHITE, true));
         root.addView(label("WORK PROFILE CREATOR & MANAGER", 11, 0xFF9CB2D1, true));
 
         LinearLayout status = new LinearLayout(this);
@@ -56,7 +61,7 @@ public class MainActivity extends Activity {
         status.addView(label(owner ? "●  WORK PROFILE AKTIF" : "○  BELUM ADA WORK PROFILE", 14,
             owner ? 0xFF42E6A4 : 0xFFFFC45C, true));
         status.addView(label(owner ? "Axey Workspace terdaftar sebagai pengelola profil." :
-            "Buat profil kerja melalui proses resmi Android.", 13, 0xFFD1DDF0, false));
+            "Status profil akan diperiksa kembali saat aplikasi dibuka.", 13, 0xFFD1DDF0, false));
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2);
         sp.setMargins(0, 24, 0, 18); root.addView(status, sp);
 
@@ -71,9 +76,9 @@ public class MainActivity extends Activity {
 
         root.addView(label("PROFILE TOOLS", 12, blue, true));
         addCard(root, "App management", "Kelola aplikasi kerja melalui pengaturan Android.", "Buka pengaturan aplikasi", v -> openSettings("android.settings.MANAGE_APPLICATIONS_SETTINGS"));
-        addCard(root, "Profile settings", "Lihat pengaturan dan status Work Profile.", "Buka pengaturan profil", v -> openSettings("android.settings.SYNC_SETTINGS"));
-        addCard(root, "Safety first", "Pembuatan profil memerlukan dukungan perangkat dan persetujuan sistem.", "Tentang & bantuan", v -> info());
-        root.addView(label("AXEY WORKSPACE  •  VERSION 1.1.0", 10, 0xFF6F83A2, true));
+        addCard(root, "Profile settings", "Lihat pengaturan profil melalui Android.", "Buka pengaturan profil", v -> openSettings("android.settings.SYNC_SETTINGS"));
+        addCard(root, "Safety first", "Pembuatan profil mengikuti dukungan dan kebijakan Android.", "Tentang & bantuan", v -> info("Work Profile dibuat oleh sistem Android, bukan mesin virtual. Ketersediaannya bergantung pada dukungan perangkat, versi Android, serta kebijakan akun atau perangkat."));
+        root.addView(label("AXEY WORKSPACE  •  VERSION 1.2.0", 10, 0xFF6F83A2, true));
         setContentView(scroll);
     }
 
@@ -94,13 +99,23 @@ public class MainActivity extends Activity {
         Button b = button(action); b.setOnClickListener(click); card.addView(b);
         LinearLayout.LayoutParams p = params(); p.topMargin = 12; root.addView(card, p);
     }
+
     private void provision() {
+        if (dpm == null) {
+            info("Layanan Device Policy Manager tidak tersedia pada perangkat ini.");
+            return;
+        }
+        if (dpm.isProfileOwnerApp(getPackageName())) {
+            info("A X E Y WORKSPACE sudah terdaftar sebagai pengelola Work Profile.");
+            render();
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= 26 &&
+            !dpm.isProvisioningAllowed(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE)) {
+            info("Android saat ini menolak proses pembuatan Work Profile untuk aplikasi ini. Ini biasanya berarti fitur provisioning tidak tersedia atau sedang dibatasi oleh kebijakan perangkat/akun. Aplikasi tidak bisa melewati pembatasan sistem tersebut.");
+            return;
+        }
         try {
-            if (dpm == null) { info(); return; }
-            if (Build.VERSION.SDK_INT >= 26 &&
-                !dpm.isProvisioningAllowed(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE)) {
-                info(); return;
-            }
             Intent intent = new Intent(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE);
             if (Build.VERSION.SDK_INT >= 23) {
                 intent.putExtra(DevicePolicyManager.EXTRA_PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME,
@@ -111,16 +126,21 @@ public class MainActivity extends Activity {
             }
             startActivity(intent);
         } catch (Exception e) {
-            info();
+            String reason = e.getMessage();
+            info("Android tidak dapat membuka layar penyiapan Work Profile." +
+                (reason == null ? "" : "\\n\\nDetail: " + reason));
         }
     }
+
     private void openSettings(String action) {
-        try { startActivity(new Intent(action)); } catch (Exception e) { info(); }
+        try { startActivity(new Intent(action)); }
+        catch (Exception e) { info("Halaman pengaturan ini tidak tersedia pada perangkat."); }
     }
-    private void info() {
+
+    private void info(String message) {
         new android.app.AlertDialog.Builder(this)
             .setTitle("Informasi perangkat")
-            .setMessage("Work Profile hanya dapat dibuat jika perangkat mendukung Managed Profile dan Android mengizinkan provisioning. Ketersediaan berbeda menurut versi Android, produsen, dan kebijakan perangkat.")
+            .setMessage(message)
             .setPositiveButton("Mengerti", null).show();
     }
 }
