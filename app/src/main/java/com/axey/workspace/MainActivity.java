@@ -785,10 +785,10 @@ public class MainActivity extends Activity {
         boolean owner = dpm != null && dpm.isProfileOwnerApp(getPackageName());
         String[] actions = new String[] {
             "Periksa & perbaiki Workspace",
-            "App Repair — perbaiki aplikasi",
+            "Periksa aplikasi",
             "Bersihkan cache AXEY",
             "Kelola aplikasi Workspace",
-            "Destroy Work Profile"
+            "Hapus data AXEY"
         };
         new android.app.AlertDialog.Builder(this)
             .setTitle("Profile Settings")
@@ -805,13 +805,13 @@ public class MainActivity extends Activity {
                         deviceInfo(false);
                     }
                 } else if (which == 1) {
-                    showAppRepair();
+                    showAppCheck();
                 } else if (which == 2) {
                     clearAxeyCache();
                 } else if (which == 3) {
                     showApps();
                 } else if (which == 4) {
-                    confirmDestroyWorkProfile();
+                    confirmResetAxeyData();
                 }
             })
             .setNegativeButton("TUTUP", null)
@@ -840,9 +840,9 @@ public class MainActivity extends Activity {
             return;
         }
         new android.app.AlertDialog.Builder(this)
-            .setTitle("App Repair — pilih aplikasi")
-            .setMessage("Pilih aplikasi yang bermasalah, misalnya WhatsApp.")
-            .setItems(labels, (dialog, which) -> showAppRepairActions(repairable[which]))
+            .setTitle("Periksa aplikasi — pilih aplikasi")
+            .setMessage("Pilih aplikasi untuk membukanya kembali, melihat info Android, atau memeriksa apakah aplikasi aktif. AXEY tidak akan menghapus data aplikasi tersebut.")
+            .setItems(labels, (dialog, which) -> showAppCheckActions(repairable[which]))
             .setNegativeButton("TUTUP", null).show();
     }
 
@@ -906,26 +906,36 @@ public class MainActivity extends Activity {
         return success;
     }
 
-    private void confirmDestroyWorkProfile() {
-        if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
-            info("AXEY belum menjadi Profile Owner. Jalankan Destroy dari AXEY yang terpasang di Work Profile aktif.");
-            return;
-        }
+    private void confirmResetAxeyData() {
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Destroy Work Profile?")
-            .setMessage("Ini menghapus aplikasi, akun, pengaturan, dan file di dalam Work Profile. Profil pribadi di luar Work Profile tidak ditargetkan. Setelah selesai, kamu dapat membuat Work Profile baru melalui provisioning Android. Tindakan ini tidak dapat dibatalkan.")
+            .setTitle("Hapus data AXEY saja?")
+            .setMessage("Tindakan ini akan menghapus pengaturan, konfigurasi proxy, daftar lokal, database, dan file milik aplikasi AXEY saja. Aplikasi lain, akun, foto, dokumen, dan seluruh Work Profile tidak akan dihapus. AXEY akan memulai ulang seperti baru dipasang.")
             .setNegativeButton("BATAL", null)
-            .setPositiveButton("LANJUTKAN", (dialog, which) ->
-                new android.app.AlertDialog.Builder(this)
-                    .setTitle("Konfirmasi terakhir")
-                    .setMessage("Yakin ingin DESTROY seluruh Work Profile sekarang?")
-                    .setNegativeButton("JANGAN HAPUS", null)
-                    .setPositiveButton("DESTROY WORK PROFILE", (confirm, choice) -> {
-                        try { dpm.wipeData(0); }
-                        catch (SecurityException e) { info("Android menolak perintah Destroy. Pastikan AXEY masih menjadi Profile Owner."); }
-                        catch (Exception e) { info("Work Profile tidak dapat dihapus: " + e.getMessage()); }
-                    }).show())
+            .setPositiveButton("HAPUS DATA AXEY", (dialog, which) -> resetAxeyData())
             .show();
+    }
+
+    private void resetAxeyData() {
+        try {
+            // Remove only AXEY-owned app data. Never call DevicePolicyManager.wipeData().
+            deleteDirectoryContents(new java.io.File(getApplicationInfo().dataDir, "shared_prefs"));
+            deleteDirectoryContents(new java.io.File(getApplicationInfo().dataDir, "databases"));
+            deleteDirectoryContents(getFilesDir());
+            deleteDirectoryContents(getCacheDir());
+            deleteDirectoryContents(getCodeCacheDir());
+            deleteDirectoryContents(getNoBackupFilesDir());
+            if (getExternalCacheDir() != null) deleteDirectoryContents(getExternalCacheDir());
+
+            android.content.Intent relaunch = getPackageManager().getLaunchIntentForPackage(getPackageName());
+            if (relaunch != null) {
+                relaunch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(relaunch);
+            }
+            finishAffinity();
+        } catch (Exception e) {
+            info("Sebagian data AXEY tidak dapat dihapus. Detail: " +
+                (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+        }
     }
 
     private void openSettings(String action) {
