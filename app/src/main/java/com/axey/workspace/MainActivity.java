@@ -160,8 +160,7 @@ public class MainActivity extends Activity {
         brandText.addView(text("AXEY", 14, TEXT, true));
         brandText.addView(text("WORKSPACE", 11, MUTED, true));
         brand.addView(brandText, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView themeToggle = text(lightMode ? "☾" : "☀", 24, TEXT, true);
-        themeToggle.setGravity(Gravity.CENTER);
+        ThemeToggleView themeToggle = new ThemeToggleView();
         themeToggle.setContentDescription(lightMode ? "Aktifkan mode gelap" : "Aktifkan mode terang");
         themeToggle.setBackground(shape(PANEL_2, 30, 0));
         themeToggle.setOnClickListener(v -> toggleTheme());
@@ -319,6 +318,50 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
         p.bottomMargin = dp(11);
         root.addView(card, p);
+    }
+
+    // Crisp vector theme control based on the Lucide Sun and Moon icon geometry.
+    private class ThemeToggleView extends View {
+        private final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path iconPath = new Path();
+        ThemeToggleView() { super(MainActivity.this); setLayerType(View.LAYER_TYPE_SOFTWARE, null); }
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float unit = dp(24) / 24f;
+            canvas.save();
+            canvas.translate((getWidth() - 24 * unit) / 2f, (getHeight() - 24 * unit) / 2f);
+            canvas.scale(unit, unit);
+            iconPaint.setColor(TEXT);
+            iconPaint.setStyle(Paint.Style.STROKE);
+            iconPaint.setStrokeWidth(1.9f);
+            iconPaint.setStrokeCap(Paint.Cap.ROUND);
+            iconPaint.setStrokeJoin(Paint.Join.ROUND);
+            iconPaint.setShader(null);
+            if (!lightMode) {
+                // Sun icon: centered disc and eight evenly spaced rays.
+                canvas.drawCircle(12, 12, 4, iconPaint);
+                canvas.drawLine(12, 2, 12, 4, iconPaint);
+                canvas.drawLine(12, 20, 12, 22, iconPaint);
+                canvas.drawLine(4.93f, 4.93f, 6.35f, 6.35f, iconPaint);
+                canvas.drawLine(17.65f, 17.65f, 19.07f, 19.07f, iconPaint);
+                canvas.drawLine(2, 12, 4, 12, iconPaint);
+                canvas.drawLine(20, 12, 22, 12, iconPaint);
+                canvas.drawLine(4.93f, 19.07f, 6.35f, 17.65f, iconPaint);
+                canvas.drawLine(17.65f, 6.35f, 19.07f, 4.93f, iconPaint);
+            } else {
+                // Moon crescent: smooth open crescent, matching Lucide's moon outline.
+                iconPath.reset();
+                iconPath.moveTo(20.2f, 15.1f);
+                iconPath.cubicTo(18.9f, 16.2f, 17.2f, 16.8f, 15.4f, 16.8f);
+                iconPath.cubicTo(10.9f, 16.8f, 7.2f, 13.1f, 7.2f, 8.6f);
+                iconPath.cubicTo(7.2f, 6.8f, 7.8f, 5.1f, 8.9f, 3.8f);
+                iconPath.cubicTo(4.9f, 5.0f, 2.2f, 8.6f, 2.2f, 12.8f);
+                iconPath.cubicTo(2.2f, 17.7f, 6.2f, 21.7f, 11.1f, 21.7f);
+                iconPath.cubicTo(15.3f, 21.7f, 18.9f, 19.0f, 20.2f, 15.1f);
+                canvas.drawPath(iconPath, iconPaint);
+            }
+            canvas.restore();
+        }
     }
 
     private class ToolIconView extends View {
