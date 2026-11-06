@@ -748,6 +748,7 @@ public class MainActivity extends Activity {
             Intent intent = new Intent(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE);
             intent.putExtra(DevicePolicyManager.EXTRA_PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME,
                 new ComponentName(this, WorkspaceAdminReceiver.class));
+            intent.putExtra(DevicePolicyManager.EXTRA_PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED, true);
             if (intent.resolveActivity(getPackageManager()) == null) {
                 info("Layar penyiapan Work Profile tidak tersedia pada ROM perangkat ini. Axey tidak dapat menggantikan proses sistem tersebut.");
                 return;
