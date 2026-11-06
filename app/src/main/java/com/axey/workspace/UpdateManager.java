@@ -248,8 +248,7 @@ public final class UpdateManager {
             Uri uri = FileProvider.getUriForFile(activity,
                 activity.getPackageName() + ".fileprovider", apk);
             Intent install = new Intent(Intent.ACTION_INSTALL_PACKAGE);
-            install.setData(uri);
-            install.setType("application/vnd.android.package-archive");
+            install.setDataAndType(uri, "application/vnd.android.package-archive");
             install.putExtra(Intent.EXTRA_RETURN_RESULT, true);
             install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             activity.startActivity(install);
