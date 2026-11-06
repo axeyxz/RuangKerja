@@ -102,8 +102,13 @@ public class MainActivity extends Activity {
                 info(); return;
             }
             Intent intent = new Intent(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE);
-            intent.putExtra(DevicePolicyManager.EXTRA_PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME,
-                new ComponentName(this, WorkspaceAdminReceiver.class));
+            if (Build.VERSION.SDK_INT >= 23) {
+                intent.putExtra(DevicePolicyManager.EXTRA_PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME,
+                    new ComponentName(this, WorkspaceAdminReceiver.class));
+            } else {
+                intent.putExtra(DevicePolicyManager.EXTRA_PROVISIONING_DEVICE_ADMIN_PACKAGE_NAME,
+                    getPackageName());
+            }
             startActivity(intent);
         } catch (Exception e) {
             info();
