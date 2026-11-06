@@ -5,6 +5,7 @@ import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -84,7 +85,7 @@ public class MainActivity extends Activity {
         addCard(root, "Profile settings", "Buka pengaturan Android untuk mengelola aplikasi dan profil.", "Buka pengaturan aplikasi", v -> openSettings("android.settings.MANAGE_APPLICATIONS_SETTINGS"));
         addCard(root, "Device information", "Lihat versi Android dan status pengelolaan profil.", "Informasi perangkat", v -> deviceInfo(owner));
         addCard(root, "Safety first", "Work Profile dibuat oleh sistem Android, bukan mesin virtual.", "Tentang & bantuan", v -> info("Ketersediaan Work Profile bergantung pada dukungan perangkat, versi Android, dan kebijakan sistem. Aplikasi ini tidak dapat melewati pembatasan Android."));
-        root.addView(label("AXEY WORKSPACE  •  VERSION 1.2.3", 10, 0xFF6F83A2, true));
+        root.addView(label("AXEY WORKSPACE  •  VERSION 1.2.4", 10, 0xFF6F83A2, true));
         setContentView(scroll);
     }
 
@@ -139,8 +140,13 @@ public class MainActivity extends Activity {
     }
 
     private void deviceInfo(boolean owner) {
+        boolean managedUsers = getPackageManager().hasSystemFeature(PackageManager.FEATURE_MANAGED_USERS);
+        boolean allowed = Build.VERSION.SDK_INT < 26 ||
+            (dpm != null && dpm.isProvisioningAllowed(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE));
         String message = "Versi Android: " + Build.VERSION.RELEASE +
             "\nAPI level: " + Build.VERSION.SDK_INT +
+            "\nDukungan Managed Profile: " + (managedUsers ? "Tersedia" : "Tidak terdeteksi") +
+            "\nProvisioning diizinkan Android: " + (allowed ? "Ya" : "Tidak saat ini") +
             "\nWork Profile dikelola Axey: " + (owner ? "Ya" : "Belum") +
             "\nPaket aplikasi: " + getPackageName();
         info(message);
@@ -156,9 +162,13 @@ public class MainActivity extends Activity {
             render();
             return;
         }
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_MANAGED_USERS)) {
+            info("Perangkat ini tidak melaporkan dukungan Android Managed Profile. Axey tidak akan memaksakan proses pembuatan profil.");
+            return;
+        }
         if (Build.VERSION.SDK_INT >= 26 &&
             !dpm.isProvisioningAllowed(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE)) {
-            info("Android saat ini menolak proses pembuatan Work Profile untuk aplikasi ini. Periksa apakah perangkat mendukung Managed Profile dan tidak sedang dibatasi kebijakan akun atau perangkat.");
+            info("Android belum mengizinkan provisioning Work Profile saat ini. Penyebabnya ditentukan oleh sistem, misalnya profil terkelola sudah ada, perangkat sedang dalam proses penyiapan, atau kebijakan perangkat membatasi penambahan profil. Periksa Pengaturan Android lalu coba lagi.");
             return;
         }
         try {
