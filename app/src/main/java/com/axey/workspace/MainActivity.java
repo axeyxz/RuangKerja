@@ -105,11 +105,11 @@ public class MainActivity extends Activity {
         mark.setShadowLayer(dp(8), 0, 0, 0xAA087FE0);
         brand.addView(mark, new LinearLayout.LayoutParams(dp(48), dp(48)));
         ObjectAnimator logoPulse = ObjectAnimator.ofFloat(mark, View.SCALE_X, 1f, 1.045f, 1f);
-        logoPulse.setDuration(2100);
+        logoPulse.setDuration(2400);
         logoPulse.setRepeatCount(ObjectAnimator.INFINITE);
         logoPulse.setInterpolator(new AccelerateDecelerateInterpolator());
         ObjectAnimator logoPulseY = ObjectAnimator.ofFloat(mark, View.SCALE_Y, 1f, 1.045f, 1f);
-        logoPulseY.setDuration(2100);
+        logoPulseY.setDuration(2400);
         logoPulseY.setRepeatCount(ObjectAnimator.INFINITE);
         logoPulseY.setInterpolator(new AccelerateDecelerateInterpolator());
         mark.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
@@ -223,23 +223,23 @@ public class MainActivity extends Activity {
         ObjectAnimator motionY = null;
         if ("settings".equals(icon)) {
             motion = ObjectAnimator.ofFloat(badge, View.ROTATION, 0f, 360f);
-            motion.setDuration(9000);
+            motion.setDuration(2400);
             motion.setInterpolator(new android.view.animation.LinearInterpolator());
         } else if ("proxy".equals(icon)) {
             // The arrows animate independently inside the icon, following their own directions.
             motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 1f, 0.96f, 1f);
-            motion.setDuration(1900);
+            motion.setDuration(2400);
             motion.setInterpolator(new AccelerateDecelerateInterpolator());
         } else if ("diagnostics".equals(icon)) {
             motion = ObjectAnimator.ofFloat(badge, View.SCALE_X, 1f, 1.09f, 1f);
             motionY = ObjectAnimator.ofFloat(badge, View.SCALE_Y, 1f, 1.09f, 1f);
-            motion.setDuration(1800);
-            motionY.setDuration(1800);
+            motion.setDuration(2400);
+            motionY.setDuration(2400);
             motion.setInterpolator(new AccelerateDecelerateInterpolator());
             motionY.setInterpolator(new AccelerateDecelerateInterpolator());
         } else if ("apps".equals(icon)) {
             motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 0.88f, 1f, 0.88f);
-            motion.setDuration(2300);
+            motion.setDuration(2400);
             motion.setInterpolator(new AccelerateDecelerateInterpolator());
         } else {
             motion = ObjectAnimator.ofFloat(badge, View.ROTATION, -7f, 7f, -7f);
@@ -302,8 +302,8 @@ public class MainActivity extends Activity {
             if ("apps".equals(kind)) {
                 // Cycle through recognizable social app marks, zooming each one in turn.
                 long elapsed = SystemClock.uptimeMillis();
-                int index = (int)((elapsed / 1500L) % 4L);
-                float phase = (elapsed % 1500L) / 1500f;
+                int index = (int)((elapsed / 2400L) % 4L);
+                float phase = (elapsed % 2400L) / 2400f;
                 float zoom = 0.82f + 0.18f * (float)Math.sin(phase * Math.PI);
                 canvas.save();
                 canvas.translate(18,18);
@@ -345,7 +345,7 @@ public class MainActivity extends Activity {
                 postInvalidateOnAnimation();
             } else if ("proxy".equals(kind)) {
                 // Upper arrow travels right; lower arrow travels left.
-                float phase = (SystemClock.uptimeMillis() % 1500L) / 1500f;
+                float phase = (SystemClock.uptimeMillis() % 2400L) / 2400f;
                 float travel = (float)Math.sin(phase * Math.PI * 2) * 2.0f;
                 canvas.save();
                 canvas.translate(travel, 0);
