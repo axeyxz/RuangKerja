@@ -167,8 +167,8 @@ public class MainActivity extends Activity {
             "BUKA DAFTAR APLIKASI", v -> showApps());
         addTool("proxy", "Proxy manager", "Simpan konfigurasi proxy SOCKS5 untuk tahap pengalihan trafik VPN.",
             "ATUR PROXY", v -> showProxyManager());
-        addTool("settings", "Profile settings", "Buka pengaturan aplikasi Android.",
-            "BUKA PENGATURAN", v -> openSettings("android.settings.MANAGE_APPLICATIONS_SETTINGS"));
+        addTool("settings", "Profile settings", "Perawatan, cache, aplikasi, dan pengelolaan Work Profile.",
+            "KELOLA WORKSPACE", v -> showProfileSettingsMenu());
         addTool("diagnostics", "Device diagnostics", "Periksa versi Android dan kesiapan Work Profile.",
             "LIHAT DIAGNOSTIK", v -> deviceInfo(owner));
         addTool("help", "Help & safety", "Ketahui batasan dan cara kerja profil terkelola.",
@@ -779,6 +779,98 @@ public class MainActivity extends Activity {
             info("Android tidak dapat membuka layar penyiapan Work Profile." +
                 (reason == null ? "" : "\n\nDetail: " + reason));
         }
+    }
+
+    private void showProfileSettingsMenu() {
+        boolean owner = dpm != null && dpm.isProfileOwnerApp(getPackageName());
+        String[] actions = new String[] {
+            "Periksa & perbaiki Workspace",
+            "Bersihkan cache AXEY",
+            "Kelola aplikasi Workspace",
+            "Hapus Work Profile"
+        };
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Profile Settings")
+            .setMessage(owner
+                ? "Pusat perawatan ruang kerja Android yang dikelola AXEY."
+                : "AXEY belum menjadi pengelola Work Profile. Beberapa tindakan hanya tersedia setelah profil aktif.")
+            .setItems(actions, (dialog, which) -> {
+                if (which == 0) {
+                    boolean active = dpm != null && dpm.isProfileOwnerApp(getPackageName());
+                    if (active) {
+                        render();
+                        info("Pemeriksaan selesai. AXEY terdaftar sebagai pengelola Work Profile. Dashboard telah diperbarui. Jika aplikasi lain masih bermasalah, buka Kelola aplikasi untuk memeriksanya satu per satu.");
+                    } else {
+                        deviceInfo(false);
+                    }
+                } else if (which == 1) {
+                    clearAxeyCache();
+                } else if (which == 2) {
+                    showApps();
+                } else if (which == 3) {
+                    confirmRemoveWorkProfile();
+                }
+            })
+            .setNegativeButton("TUTUP", null)
+            .show();
+    }
+
+    private void clearAxeyCache() {
+        long before = directorySize(getCacheDir());
+        boolean cleared = deleteDirectoryContents(getCacheDir());
+        long after = directorySize(getCacheDir());
+        long removed = Math.max(0L, before - after);
+        info(cleared
+            ? "Cache AXEY berhasil dibersihkan. Data aplikasi, konfigurasi proxy, dan data aplikasi lain di Work Profile tidak dihapus.\n\nRuang cache dibersihkan: " + android.text.format.Formatter.formatShortFileSize(this, removed)
+            : "Sebagian cache AXEY tidak dapat dihapus. Coba tutup dan buka kembali AXEY.");
+    }
+
+    private long directorySize(java.io.File file) {
+        if (file == null || !file.exists()) return 0L;
+        if (file.isFile()) return file.length();
+        long total = 0L;
+        java.io.File[] children = file.listFiles();
+        if (children != null) for (java.io.File child : children) total += directorySize(child);
+        return total;
+    }
+
+    private boolean deleteDirectoryContents(java.io.File directory) {
+        if (directory == null || !directory.exists()) return true;
+        java.io.File[] children = directory.listFiles();
+        if (children == null) return true;
+        boolean success = true;
+        for (java.io.File child : children) {
+            if (child.isDirectory()) success &= deleteDirectoryContents(child);
+            if (!child.delete()) success = false;
+        }
+        return success;
+    }
+
+    private void confirmRemoveWorkProfile() {
+        if (dpm == null || !dpm.isProfileOwnerApp(getPackageName())) {
+            info("AXEY bukan pengelola Work Profile. Penghapusan profil hanya dapat dilakukan oleh pemilik profil melalui mekanisme resmi Android.");
+            return;
+        }
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Hapus seluruh Work Profile?")
+            .setMessage("PERINGATAN: Android akan menghapus profil kerja beserta aplikasi, akun, file, dan data yang tersimpan di dalamnya. Tindakan ini tidak dapat dibatalkan. Profil pribadi di luar Work Profile tidak ditargetkan oleh tindakan ini. Pastikan semua data penting sudah dicadangkan.")
+            .setNegativeButton("BATAL", null)
+            .setPositiveButton("LANJUTKAN", (dialog, which) ->
+                new android.app.AlertDialog.Builder(this)
+                    .setTitle("Konfirmasi terakhir")
+                    .setMessage("Yakin ingin menghapus Work Profile sekarang?")
+                    .setNegativeButton("JANGAN HAPUS", null)
+                    .setPositiveButton("HAPUS WORK PROFILE", (confirm, choice) -> {
+                        try {
+                            dpm.wipeData(0);
+                        } catch (SecurityException e) {
+                            info("Android menolak penghapusan Work Profile. Hapus profil melalui pengaturan resmi Android.");
+                        } catch (Exception e) {
+                            info("Work Profile tidak dapat dihapus: " + e.getMessage());
+                        }
+                    })
+                    .show())
+            .show();
     }
 
     private void openSettings(String action) {
