@@ -57,7 +57,9 @@ jobs:
       - name: Prepare install package
         run: |
           mkdir -p dist
-          cp engine/app/build/outputs/apk/debug/*.apk dist/Axey-Virtual-debug.apk
+          APK_PATH=$(find engine/app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' | head -n 1)
+          test -n "$APK_PATH"
+          cp "$APK_PATH" dist/Axey-Virtual-debug.apk
           cp engine/LICENSE dist/BLACKBOX-LICENSE.txt
           cp engine/README.md dist/BLACKBOX-UPSTREAM-README.md
           cat > dist/README-INSTALL.txt <<'EOF'
