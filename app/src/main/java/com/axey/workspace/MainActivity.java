@@ -223,9 +223,10 @@ public class MainActivity extends Activity {
         ObjectAnimator motion;
         ObjectAnimator motionY = null;
         if ("settings".equals(icon)) {
-            motion = ObjectAnimator.ofFloat(badge, View.ROTATION, 0f, 360f);
+            // Keep the tile steady; rotate only the colored gear drawn inside it.
+            motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 1f, 0.94f, 1f);
             motion.setDuration(2400);
-            motion.setInterpolator(new android.view.animation.LinearInterpolator());
+            motion.setInterpolator(new AccelerateDecelerateInterpolator());
         } else if ("proxy".equals(icon)) {
             // The arrows animate independently inside the icon, following their own directions.
             motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 1f, 0.96f, 1f);
@@ -302,45 +303,51 @@ public class MainActivity extends Activity {
             canvas.scale(scale,scale);
             setup(2.4f);
             if ("apps".equals(kind)) {
-                // Cycle through recognizable social app marks, zooming each one in turn.
+                // Brand-colored social app tiles; each white mark scales in on its own turn.
                 long elapsed = SystemClock.uptimeMillis();
                 int index = (int)((elapsed / 2400L) % 4L);
                 float phase = (elapsed % 2400L) / 2400f;
-                float zoom = 0.82f + 0.18f * (float)Math.sin(phase * Math.PI);
+                float zoom = 0.78f + 0.22f * (float)Math.sin(phase * Math.PI);
                 canvas.save();
                 canvas.translate(18,18);
                 canvas.scale(zoom,zoom);
                 canvas.translate(-18,-18);
                 paint.setStyle(Paint.Style.FILL);
+                paint.setShader(null);
+                int tile = index == 0 ? 0xFF1877F2 : index == 1 ? 0xFF090909 :
+                    index == 2 ? 0xFFE1306C : 0xFF25D366;
+                paint.setColor(tile);
+                canvas.drawRoundRect(3,3,33,33,9,9,paint);
+                paint.setColor(Color.WHITE);
                 if (index == 0) {
                     paint.setTypeface(Typeface.create("sans-serif-black",Typeface.BOLD));
-                    paint.setTextSize(31);
-                    canvas.drawText("f",10,29,paint);
+                    paint.setTextSize(28);
+                    canvas.drawText("f",12,29,paint);
                 } else if (index == 1) {
                     paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(2.6f);
-                    canvas.drawRoundRect(5,5,31,31,8,8,paint);
-                    canvas.drawCircle(18,18,6,paint);
-                    paint.setStyle(Paint.Style.FILL);
-                    canvas.drawCircle(26,10,1.8f,paint);
+                    paint.setStrokeWidth(3.3f);
+                    paint.setStrokeCap(Paint.Cap.SQUARE);
+                    canvas.drawLine(10,10,26,26,paint);
+                    canvas.drawLine(26,10,10,26,paint);
                 } else if (index == 2) {
                     paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(3.2f);
-                    paint.setStrokeCap(Paint.Cap.ROUND);
-                    canvas.drawLine(7,7,29,29,paint);
-                    canvas.drawLine(28,7,8,29,paint);
+                    paint.setStrokeWidth(2.4f);
+                    canvas.drawRoundRect(8,8,28,28,6,6,paint);
+                    canvas.drawCircle(18,18,4.5f,paint);
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.drawCircle(25,11,1.5f,paint);
                 } else {
                     paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(2.5f);
-                    canvas.drawCircle(18,16,12,paint);
+                    paint.setStrokeWidth(2.1f);
+                    canvas.drawCircle(18,17,10.5f,paint);
                     path.reset();
-                    path.moveTo(10,25); path.lineTo(7,31); path.lineTo(16,28);
+                    path.moveTo(10,25); path.lineTo(7,30); path.lineTo(16,27);
                     canvas.drawPath(path,paint);
-                    paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(2.4f);
+                    paint.setStrokeWidth(2.8f);
+                    paint.setStrokeCap(Paint.Cap.ROUND);
                     path.reset();
-                    path.moveTo(13,11); path.quadTo(11,15,17,20);
-                    path.quadTo(22,24,25,19);
+                    path.moveTo(14,11); path.quadTo(11,14,16,20);
+                    path.quadTo(21,25,25,20);
                     canvas.drawPath(path,paint);
                 }
                 canvas.restore();
@@ -365,13 +372,35 @@ public class MainActivity extends Activity {
                 canvas.restore();
                 postInvalidateOnAnimation();
             } else if ("settings".equals(kind)) {
-                canvas.drawCircle(18,18,7,paint);
-                for (int i=0;i<8;i++) {
-                    double angle = Math.PI*i/4;
-                    float x=(float)Math.cos(angle), y=(float)Math.sin(angle);
-                    canvas.drawLine(18+x*9,18+y*9,18+x*13,18+y*13,paint);
+                // Premium blue-violet gear rotates inside a steady dark tile.
+                float phase = (SystemClock.uptimeMillis() % 2400L) / 2400f;
+                canvas.save();
+                canvas.translate(18,18);
+                canvas.rotate(phase * 360f);
+                canvas.translate(-18,-18);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setShader(new android.graphics.LinearGradient(5,5,31,31,
+                    new int[] { 0xFF25B8FF, 0xFF386BFF, 0xFF8A5CFF },
+                    null, android.graphics.Shader.TileMode.CLAMP));
+                path.reset();
+                for (int i=0;i<24;i++) {
+                    double angle = Math.PI * 2d * i / 24d - Math.PI/2d;
+                    float radius = (i % 3 == 0 || i % 3 == 1) ? 14f : 11f;
+                    float x = 18f + (float)Math.cos(angle) * radius;
+                    float y = 18f + (float)Math.sin(angle) * radius;
+                    if (i == 0) path.moveTo(x,y); else path.lineTo(x,y);
                 }
-                canvas.drawCircle(18,18,2,paint);
+                path.close();
+                canvas.drawPath(path,paint);
+                paint.setShader(null);
+                paint.setColor(0xFF0B1930);
+                canvas.drawCircle(18,18,6.2f,paint);
+                paint.setColor(Color.WHITE);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(1.8f);
+                canvas.drawCircle(18,18,3.1f,paint);
+                canvas.restore();
+                postInvalidateOnAnimation();
             } else if ("diagnostics".equals(kind)) {
                 canvas.drawCircle(15,15,9,paint);
                 canvas.drawLine(22,22,32,32,paint);
