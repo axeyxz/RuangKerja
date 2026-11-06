@@ -12,6 +12,7 @@ import android.graphics.Color;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PathMeasure;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -242,7 +243,8 @@ public class MainActivity extends Activity {
             motion.setDuration(2400);
             motion.setInterpolator(new AccelerateDecelerateInterpolator());
         } else {
-            motion = ObjectAnimator.ofFloat(badge, View.ROTATION, -7f, 7f, -7f);
+            // Help icon draws its question mark stroke-by-stroke in its own 2.4s loop.
+            motion = ObjectAnimator.ofFloat(badge, View.ALPHA, 1f, 1f);
             motion.setDuration(2400);
             motion.setInterpolator(new AccelerateDecelerateInterpolator());
         }
@@ -376,10 +378,28 @@ public class MainActivity extends Activity {
                 canvas.drawLine(11,15,14,18,paint);
                 canvas.drawLine(14,18,20,11,paint);
             } else {
-                paint.setTextSize(31);
-                paint.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
-                canvas.drawText("?",8,29,paint);
-                canvas.drawCircle(18,18,16,paint);
+                // Handwritten question mark: trace the curve, then draw its dot, then repeat.
+                float phase = (SystemClock.uptimeMillis() % 2400L) / 2400f;
+                Path question = new Path();
+                question.moveTo(10f,11f);
+                question.cubicTo(10f,3f,27f,3f,27f,12f);
+                question.cubicTo(27f,18f,18f,18f,18f,24f);
+                PathMeasure measure = new PathMeasure(question, false);
+                float length = measure.getLength();
+                float drawLength = length * Math.min(1f, phase / 0.78f);
+                Path partial = new Path();
+                measure.getSegment(0f, drawLength, partial, true);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(2.8f);
+                paint.setStrokeCap(Paint.Cap.ROUND);
+                paint.setStrokeJoin(Paint.Join.ROUND);
+                canvas.drawPath(partial, paint);
+                if (phase > 0.78f) {
+                    float dotProgress = Math.min(1f, (phase - 0.78f) / 0.12f);
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.drawCircle(18f, 31f, 1.8f * dotProgress, paint);
+                }
+                postInvalidateOnAnimation();
             }
             canvas.restore();
         }
