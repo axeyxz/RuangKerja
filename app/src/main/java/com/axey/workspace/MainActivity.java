@@ -16,6 +16,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.View;
 import android.net.VpnService;
@@ -299,9 +300,49 @@ public class MainActivity extends Activity {
             canvas.scale(scale,scale);
             setup(2.4f);
             if ("apps".equals(kind)) {
+                // Cycle through recognizable social app marks, zooming each one in turn.
+                long elapsed = SystemClock.uptimeMillis();
+                int index = (int)((elapsed / 1500L) % 4L);
+                float phase = (elapsed % 1500L) / 1500f;
+                float zoom = 0.82f + 0.18f * (float)Math.sin(phase * Math.PI);
+                canvas.save();
+                canvas.translate(18,18);
+                canvas.scale(zoom,zoom);
+                canvas.translate(-18,-18);
                 paint.setStyle(Paint.Style.FILL);
-                float[] x = {5,21,5,21}, y = {5,5,21,21};
-                for (int i=0;i<4;i++) canvas.drawRoundRect(x[i],y[i],x[i]+10,y[i]+10,2,2,paint);
+                if (index == 0) {
+                    paint.setTypeface(Typeface.create("sans-serif-black",Typeface.BOLD));
+                    paint.setTextSize(31);
+                    canvas.drawText("f",10,29,paint);
+                } else if (index == 1) {
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(2.6f);
+                    canvas.drawRoundRect(5,5,31,31,8,8,paint);
+                    canvas.drawCircle(18,18,6,paint);
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.drawCircle(26,10,1.8f,paint);
+                } else if (index == 2) {
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(3.2f);
+                    paint.setStrokeCap(Paint.Cap.ROUND);
+                    canvas.drawLine(7,7,29,29,paint);
+                    canvas.drawLine(28,7,8,29,paint);
+                } else {
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(2.5f);
+                    canvas.drawCircle(18,16,12,paint);
+                    path.reset();
+                    path.moveTo(10,25); path.lineTo(7,31); path.lineTo(16,28);
+                    canvas.drawPath(path,paint);
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(2.4f);
+                    path.reset();
+                    path.moveTo(13,11); path.quadTo(11,15,17,20);
+                    path.quadTo(22,24,25,19);
+                    canvas.drawPath(path,paint);
+                }
+                canvas.restore();
+                postInvalidateOnAnimation();
             } else if ("proxy".equals(kind)) {
                 // Upper arrow travels right; lower arrow travels left.
                 float phase = (SystemClock.uptimeMillis() % 1500L) / 1500f;
