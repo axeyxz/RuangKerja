@@ -2,16 +2,14 @@ name: Build RuangKerja APK
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
     name: Build debug APK
     runs-on: ubuntu-latest
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -22,28 +20,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Find Android SDK manager
-        shell: bash
-        run: |
-          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort -V | tail -n 1)"
-          if [ -z "$SDKMANAGER" ]; then
-            echo "sdkmanager not found in $ANDROID_HOME/cmdline-tools"
-            exit 1
-          fi
-          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
-          echo "Found: $SDKMANAGER"
-
-      - name: Accept Android SDK licenses
-        shell: bash
-        run: yes | "$SDKMANAGER" --licenses || true
-
-      - name: Install Android platform 35
-        shell: bash
-        run: "$SDKMANAGER" --install 'platforms;android-35'
-
-      - name: Install Android build tools 35
-        shell: bash
-        run: "$SDKMANAGER" --install 'build-tools;35.0.0'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platforms;android-35
+            build-tools;35.0.0
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
