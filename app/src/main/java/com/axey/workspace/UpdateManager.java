@@ -36,6 +36,17 @@ public final class UpdateManager {
 
     private UpdateManager() { }
 
+    public static void checkForUpdate(Activity activity) {
+        if (activity == null) return;
+        try {
+            String installedVersion = activity.getPackageManager()
+                .getPackageInfo(activity.getPackageName(), 0).versionName;
+            checkForUpdate(activity, installedVersion == null ? "0" : installedVersion);
+        } catch (Exception e) {
+            Log.w(TAG, "Cannot read installed app version", e);
+        }
+    }
+
     public static void checkForUpdate(Activity activity, String currentVersion) {
         if (activity == null || activity.isFinishing() || checking) return;
         SharedPreferences prefs = activity.getSharedPreferences(PREFS, Activity.MODE_PRIVATE);
