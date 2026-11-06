@@ -25,6 +25,10 @@ public class WorkspaceAdminReceiver extends DeviceAdminReceiver {
                 return;
             }
 
+            // Explicitly enable the managed profile after Android completes provisioning.
+            // This uses the official, profile-scoped DevicePolicyManager API.
+            dpm.setProfileEnabled(admin);
+
             // Apply only profile-scoped branding and support information.
             dpm.setProfileName(admin, "Axey Workspace");
             dpm.setOrganizationColor(admin, Color.rgb(45, 125, 245));
