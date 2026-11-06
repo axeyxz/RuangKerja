@@ -36,11 +36,13 @@ import java.util.HashSet;
 
 public class MainActivity extends Activity {
     private static final int VPN_REQUEST_CODE = 7401;
-    private static final int BG = Color.rgb(5, 10, 20);
-    private static final int PANEL = Color.rgb(14, 25, 43);
-    private static final int PANEL_2 = Color.rgb(19, 37, 61);
-    private static final int BLUE = Color.rgb(18, 151, 255);
-    private static final int MUTED = Color.rgb(157, 178, 205);
+    private int BG = Color.rgb(8, 8, 10);
+    private int PANEL = Color.rgb(20, 20, 23);
+    private int PANEL_2 = Color.rgb(32, 32, 36);
+    private int BLUE = Color.rgb(45, 125, 245);
+    private int MUTED = Color.rgb(174, 174, 182);
+    private int TEXT = Color.WHITE;
+    private boolean lightMode = false;
     private DevicePolicyManager dpm;
     private LinearLayout root;
 
@@ -49,12 +51,46 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
         dpm = (DevicePolicyManager) getSystemService(DEVICE_POLICY_SERVICE);
+        lightMode = getPreferences(MODE_PRIVATE).getBoolean("light_mode", false);
+        applyTheme();
         render();
     }
 
     @Override protected void onResume() {
         super.onResume();
-        if (dpm != null) render();
+        if (dpm != null) { applyTheme(); render(); }
+    }
+
+    private void applyTheme() {
+        if (lightMode) {
+            BG = Color.rgb(248, 249, 251);
+            PANEL = Color.WHITE;
+            PANEL_2 = Color.rgb(239, 241, 245);
+            BLUE = Color.rgb(35, 105, 220);
+            MUTED = Color.rgb(95, 100, 110);
+            TEXT = Color.rgb(20, 22, 27);
+        } else {
+            BG = Color.rgb(8, 8, 10);
+            PANEL = Color.rgb(20, 20, 23);
+            PANEL_2 = Color.rgb(32, 32, 36);
+            BLUE = Color.rgb(45, 125, 245);
+            MUTED = Color.rgb(174, 174, 182);
+            TEXT = Color.WHITE;
+        }
+        getWindow().setStatusBarColor(BG);
+        getWindow().setNavigationBarColor(BG);
+        if (Build.VERSION.SDK_INT >= 23) {
+            int flags = lightMode ? View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR : 0;
+            if (lightMode) flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            getWindow().getDecorView().setSystemUiVisibility(flags);
+        }
+    }
+
+    private void toggleTheme() {
+        lightMode = !lightMode;
+        getPreferences(MODE_PRIVATE).edit().putBoolean("light_mode", lightMode).apply();
+        applyTheme();
+        render();
     }
 
     private GradientDrawable shape(int color, int radius, int stroke) {
@@ -121,19 +157,20 @@ public class MainActivity extends Activity {
         LinearLayout brandText = new LinearLayout(this);
         brandText.setOrientation(LinearLayout.VERTICAL);
         brandText.setPadding(dp(12), 0, 0, 0);
-        brandText.addView(text("AXEY", 14, Color.WHITE, true));
+        brandText.addView(text("AXEY", 14, TEXT, true));
         brandText.addView(text("WORKSPACE", 11, MUTED, true));
         brand.addView(brandText, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView version = text("1.2.6", 11, BLUE, true);
-        version.setGravity(Gravity.CENTER);
-        version.setPadding(dp(12), dp(7), dp(12), dp(7));
-        version.setBackground(shape(PANEL_2, 30, 0));
-        brand.addView(version);
+        TextView themeToggle = text(lightMode ? "☾" : "☀", 24, TEXT, true);
+        themeToggle.setGravity(Gravity.CENTER);
+        themeToggle.setContentDescription(lightMode ? "Aktifkan mode gelap" : "Aktifkan mode terang");
+        themeToggle.setBackground(shape(PANEL_2, 30, 0));
+        themeToggle.setOnClickListener(v -> toggleTheme());
+        brand.addView(themeToggle, new LinearLayout.LayoutParams(dp(44), dp(44)));
         root.addView(brand);
         space(root, 28);
 
-        root.addView(text("Your work.", 32, Color.WHITE, true));
-        root.addView(text("Your space.", 32, BLUE, true));
+        root.addView(text("Your work.", 32, TEXT, true));
+        root.addView(text("Your space.", 32, TEXT, true));
         space(root, 8);
         root.addView(text("Ruang kerja terpisah, dikelola oleh Android.", 13, MUTED, false));
         space(root, 22);
@@ -199,7 +236,7 @@ public class MainActivity extends Activity {
 
     private Button secondary(String value) {
         Button b = primary(value);
-        b.setTextColor(0xFFDCEBFA);
+        b.setTextColor(TEXT);
         b.setBackground(shape(PANEL_2, 16, 0xFF24466A));
         return b;
     }
@@ -269,7 +306,7 @@ public class MainActivity extends Activity {
                 badge.setAlpha(1f);
             }
         });
-        TextView heading = text(title, 16, Color.WHITE, true);
+        TextView heading = text(title, 16, TEXT, true);
         heading.setPadding(dp(12), 0, 0, 0);
         top.addView(heading);
         card.addView(top);
@@ -399,7 +436,7 @@ public class MainActivity extends Activity {
                 path.close();
                 canvas.drawPath(path,paint);
                 paint.setShader(null);
-                paint.setColor(0xFF0B1930);
+                paint.setColor(BG);
                 canvas.drawCircle(18,18,6.2f,paint);
                 paint.setColor(Color.WHITE);
                 paint.setStyle(Paint.Style.STROKE);
@@ -699,7 +736,7 @@ public class MainActivity extends Activity {
         input.setSingleLine(true);
         input.setText(value);
         input.setHint(hint);
-        input.setTextColor(Color.WHITE);
+        input.setTextColor(TEXT);
         input.setHintTextColor(MUTED);
         input.setPadding(dp(12), dp(8), dp(12), dp(8));
         input.setBackground(shape(PANEL_2, 12, 0xFF24466A));
