@@ -82,7 +82,8 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
         if (Build.VERSION.SDK_INT >= 23) {
-            int flags = lightMode ? View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR : 0;
+            // Hide only the status bar (clock, signal and battery); keep navigation controls visible.
+            int flags = View.SYSTEM_UI_FLAG_FULLSCREEN;
             if (lightMode) flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
             getWindow().getDecorView().setSystemUiVisibility(flags);
         }
