@@ -208,10 +208,10 @@ public class MainActivity extends Activity {
             "ATUR PROXY", v -> showProxyManager());
         addTool("settings", "Profile settings", "Perawatan, cache, aplikasi, dan pengelolaan Work Profile.",
             "KELOLA WORKSPACE", v -> showProfileSettingsMenu());
-        addTool("update", "App updates", "Periksa versi terbaru AXEY Workspace dan pasang pembaruan resmi.",
-            "CEK PEMBARUAN", v -> UpdateManager.checkForUpdateNow(this));
         addTool("diagnostics", "Device diagnostics", "Periksa versi Android dan kesiapan Work Profile.",
             "LIHAT DIAGNOSTIK", v -> deviceInfo(owner));
+        addTool("update", "App updates", "Periksa versi terbaru AXEY Workspace dan pasang pembaruan resmi.",
+            "CEK PEMBARUAN", v -> UpdateManager.checkForUpdateNow(this));
         addTool("help", "Help & safety", "Ketahui batasan dan cara kerja profil terkelola.",
             "BACA INFORMASI", v -> info("Work Profile adalah fitur Android. Axey tidak membuat mesin virtual dan tidak dapat melewati pembatasan sistem. Ketersediaan pembuatan profil ditentukan oleh perangkat dan kebijakan Android."));
         space(root, 18);
